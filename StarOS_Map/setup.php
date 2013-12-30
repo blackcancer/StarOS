@@ -27,6 +27,8 @@
 	createEntityDatabase($serverDatabase, $decoder);
 	echo "Now loading faction information\n";
 	createFactionDatabase($serverDatabase, $decoder);
+	echo "Now loading catalog information\n";
+	createCatalogDatabase($serverDatabase, $decoder);
 	
 	function createEntityDatabase($dir, $decoder) {
 		$entityFiles = glob($dir . "ENTITY_*", GLOB_NOSORT); // Find all of the playerstate files
@@ -74,4 +76,9 @@
 		
 	}
 	
+	
+	function createCatalogDatabase($dir, $decoder) {
+		$catalog = $decoder->decodeSMFile($dir . "CATALOG.cat");
+		file_put_contents("./scripts/js/StarOS/StarOS_json/catalog.json", json_encode($catalog, JSON_FORCE_OBJECT));
+	}
 ?>
