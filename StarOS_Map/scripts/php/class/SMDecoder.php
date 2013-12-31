@@ -1,27 +1,25 @@
 <?php
 	header('Content-Type: text/html; charset=UTF-8');
-		/*
-			Based on: SMDecoder Class
-			Description: Intergrate Starmade files within your own projects.
-			License: http://creativecommons.org/licenses/by/3.0/legalcode
-			FileVersion: 0.4
-			Date: 2013-08-29
-			By Blackcancer
-			website: http://initsysrev.net
-			support: blackcancer@initsysrev.net
-		*/
+	/*
+		Based on: SMDecoder Class
+		Description: Intergrate Starmade files within your own projects.
+		License: http://creativecommons.org/licenses/by/3.0/legalcode
+		FileVersion: 0.5
+		Date: 2013-08-29
+		By Blackcancer
+		website: http://initsysrev.net
+		support: blackcancer@initsysrev.net
+	*/
+
+	define("NULL32", "00000000000000000000000000000000");
+	define("NULL64", "0000000000000000000000000000000000000000000000000000000000000000");
+	define("NULLFLOAT", 0.0);
 
 	class SMDecoder {
 		
-		private $null32 = "00000000000000000000000000000000";
-		private $null64 = "0000000000000000000000000000000000000000000000000000000000000000";
-		private $nullFloat = 0.0;
-		
-		public $entity = array();
-		public $faction = array();
-		public $catalog = array();
 		
 		public function decodeSMFile($file){
+			$entity = array();
 			$data = file_get_contents($file);
 			$ext = pathinfo($file, PATHINFO_EXTENSION);
 			
@@ -31,61 +29,29 @@
 			else if($ext == "ent"){
 				$type = $this->getType($file);
 				if($type > 0 && $type < 6){
-					//OBJECTS -----------------------------------------------------------
-					$entity['uid'] = $this->getUID($data);			//get Unique ID
-					$entity['type'] = $type;						//get Type
-					$entity['name'] = $this->getName($data);		//get Name
-					$entity['mass'] = (float)$this->getMass($data);		//get Mass
-					if($type == 2 || $type == 4 || $type == 5){
-						$entity['pw'] = (double)$this->getPw($data);		//get Power Capacity
-						$entity['sh'] = (double)$this->getSh($data);		//get Shield Capacity
-					} else {
-						$entity['pw'] = (double)0;					//set Power Capacity 0
-						$entity['sh'] = (double)0;					//set Shield Capacity 0
-					}
-					$entity['fid'] = $this->getFID($data);	//get Faction ID
-					$creation = $this->getCreation($data);
-					if($creation[0] == chr(0)){
-						$creation[0] = "<system>";
-					}
-					if($creation[1] == chr(0)){
-						$creation[1] = "";
-					}
-					$entity['creator'] = $creation[0];				//get Creator
-					$entity['lastMod'] = $creation[1];				//get Last_Mod
-					$entity['sPos'] = $this->getSecPos($data);		//get sPos
-					$transform = $this->getTransform($data, $entity['type']);
-					$entity['transformX'] = $transform['x'];		//get transformX
-					$entity['transformY'] = $transform['y'];		//get transformY
-					$entity['transformZ'] = $transform['z'];		//get transformZ
-					$entity['localPos'] = $transform['o'];			//get LocalPos
-					$entity['dim'] = $this->getDim($data);			//get DIM
-					$entity['genId'] = $creation[2];				//get Gen_ID
-					//-------------------------------------------------------------------
-					
-				} else if($type == 6){
-					$entity['type'] = $type;
-					$match = preg_match('/(?:PLAYERCHARACTER_)(.+)(?:.ent)/', $file, $matches);
-					$entity['name'] = $matches[1];
-					$entity['mass'] = (float)$this->getMass($data);		//get Mass
-					$entity['sPos'] = $this->getSecPos($data);		//get sPos
-					$transform = $this->getTransform($data, $entity['Type']);
-					$entity['transformX'] = $transform['x'];		//get transformX
-					$entity['transformY'] = $transform['y'];		//get transformY
-					$entity['transformZ'] = $transform['z'];		//get transformZ
-					$entity['localPos'] = $transform['o'];			//get LocalPos
-				} else if($type == 7){
-					$match = preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
-					$entity['name'] = $matches[1];
-					$entity['credits'] = $this->getCredits($data);
-					$entity['sector'] = $this->getSector($data);
-					$entity['fid'] = $this->getPFac($data);
-				} else {
+					$entity = $this->decodeEnt($data, $type);
+				}
+				else if($type == 6){
+					$entity = $this->decodePlayChar($data, $type);
+				}
+				else if($type == 7){
+					$entity = $this->decodePlayState($data, $file);
+				}
+				else {
 					return -1;
 				}
 			}
 			else if($ext == "cat"){
 				$entity = $this->decodeCat($data);
+			}
+			else if($ext == "smbph"){
+				$entity = $this->decodeHeader($file);
+			}
+			else if($ext == "smbpl"){
+				$entity = $this->decodeLogic($file);
+			}
+			else if($ext == "smbpm"){
+				$entity = $this->decodeMeta($file);
 			}
 			else if($ext == "smd2"){
 				echo "starmade mesh file format";
@@ -99,7 +65,8 @@
 
 	//============================= Faction Decoder =============================//
 
-		public function decodeFac($data){
+		private function decodeFac($data){
+			$faction = array();
 			//Get Faction ID
 			preg_match_all('/(?:id)(.+)(?:fn)/Us', $data, $fdata);
 			$fNumber = count($fdata[1]);
@@ -169,13 +136,82 @@
 		
 		
 	//============================= Entity Decoder =============================//
+		private function decodeEnt($data, $type){
+			$arr = array();
+			
+			$arr['uid'] = $this->getUID($data);			//get Unique ID
+			$arr['type'] = $type;						//get Type
+			$arr['name'] = $this->getName($data);		//get Name
+			$arr['mass'] = (float)$this->getMass($data);		//get Mass
+			if($type == 2 || $type == 4 || $type == 5){
+				$arr['pw'] = (double)$this->getPw($data);		//get Power Capacity
+				$arr['sh'] = (double)$this->getSh($data);		//get Shield Capacity
+			} else {
+				$arr['pw'] = (double)0;					//set Power Capacity 0
+				$arr['sh'] = (double)0;					//set Shield Capacity 0
+			}
+			$arr['fid'] = $this->getFID($data);	//get Faction ID
+			$arr['AIConfig'] = $this->getAI($data);		//get AIConfig
+			$arr['container'] = $this->getContenairs($data); //get inventory and content
+			$creation = $this->getCreation($data);
+			if($creation[0] == chr(0)){
+				$creation[0] = "<system>";
+			}
+			if($creation[1] == chr(0)){
+				$creation[1] = "";
+			}
+			$arr['creator'] = $creation[0];				//get Creator
+			$arr['lastMod'] = $creation[1];				//get Last_Mod
+			$arr['sPos'] = $this->getSecPos($data);		//get sPos
+			$transform = $this->getTransform($data, $arr['type']);
+			$arr['transformX'] = $transform['x'];		//get transformX
+			$arr['transformY'] = $transform['y'];		//get transformY
+			$arr['transformZ'] = $transform['z'];		//get transformZ
+			$arr['localPos'] = $transform['o'];			//get LocalPos
+			$arr['dim'] = $this->getDim($data);			//get DIM
+			$arr['genId'] = $creation[2];				//get Gen_ID
+			
+			return $arr;	
+		}
 		
-		public function getUID($data){
-			$match = preg_match('/(?:ENTITY_)(.+)(?:)/', $data, $matches);
+		private function decodePlayChar($data, $type){
+			$arr = array();
+			
+			preg_match('/(?:PLAYERCHARACTER_)(.+)(?:.ent)/', $file, $matches);
+			$arr['type'] = $type;
+			$arr['name'] = $matches[1];
+			$arr['mass'] = (float)$this->getMass($data);		//get Mass
+			$arr['sPos'] = $this->getSecPos($data);		//get sPos
+			$transform = $this->getTransform($data, $entity['Type']);
+			$arr['transformX'] = $transform['x'];		//get transformX
+			$arr['transformY'] = $transform['y'];		//get transformY
+			$arr['transformZ'] = $transform['z'];		//get transformZ
+			$arr['localPos'] = $transform['o'];			//get LocalPos
+			
+			return $arr;
+		}
+		
+		private function decodePlayState($data, $file){
+			$arr = array();
+			preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
+			$arr['name'] = $matches[1];
+			$arr['credits'] = $this->getCredits($data);
+			$arr['spawn'] = $this->getSpawn($data);
+			$arr['sector'] = $this->getSector($data);
+			$arr['lspawn'] = $this->getLspawn($data);
+			$arr['lsector'] = $this->getLsector($data);
+			$arr['fid'] = $this->getPFac($data);
+			
+			return $arr;
+		}
+		
+		//========== sub function ==========//
+		private function getUID($data){
+			preg_match('/(?:ENTITY_)(.+)(?:)/', $data, $matches);
 			return $matches[0]; 
 		}
 		
-		public function getType($data){
+		private function getType($data){
 			preg_match('/(?:ENTITY_)([A-Z]+)(?:_)/', $data, $matches);
 			if(isset($matches[1])){
 				if(strpos($matches[1], 'FLOATING_ITEMS_ARCHIVE') !== false){
@@ -202,56 +238,38 @@
 			}
 		}
 		
-		public function getName($data){
-			$match = preg_match('/(?:realname)(.+)(?:transformable)/', $data, $matches);
-			$dump = substr(substr($matches[1],2),0,-3);
+		private function getName($data){
+			preg_match('/(?:\x00\x08realname)(.+)(?:\x0d\x00)/Us', $data, $matches);
+			$dump = substr($matches[1],2);
 			return $dump;
 		}
 		
-		public function getMass($data){
-			$match = preg_match('/(?:mass)(.+)(?:transform)/', $data, $matches);
+		private function getMass($data){
+			preg_match('/(?:\x00\x04mass)(.+)(?:\x0C\x00)/Us', $data, $matches);
 			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) -3; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return round($this->bin2Float($byteInt),1);
+			return round(binFloat($dump), 1);
 		}
 		
-		public function getPw($data){
-			$match = preg_match('/(?:pw)(.+)(?:sh)/', $data, $matches);
+		private function getPw($data){
+			preg_match('/(?:\x00\x02pw)(.+)(?:\x06\x00)/Us', $data, $matches);
 			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) -3; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return round($this->bin2Double($byteInt),1);
+			return round(binDouble($dump),1);
 		}
 		
-		public function getSh($data){
-			preg_match('/(?:pw)(.+)(?:ex)/Us', $data, $matches);
-			$str = $matches[0];
-			preg_match('/(?:sh)(.+)(?:ex)/Us', $str, $matches);
-			$dump = substr($matches[1],0,-2);
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) -1; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return round($this->bin2Double($byteInt),1);
-		}
-		
-		public function getFID($data){
-			$match = preg_match('/(?:fid)(.+)(?:own)/', $data, $matches);
+		private function getSh($data){
+			preg_match('/(?:\x00\x02sh)(.+)(?:\x01\x00)/Us', $data, $matches);
 			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) -3; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return $this->bin2Int($byteInt);
+			return round(binDouble($dump),1);
 		}
 		
-		public function getCreation($data){
-			$match = preg_match('/(?:creatoreId)(.+)(?:)/', $data, $matches);
+		private function getFID($data){
+			preg_match('/(?:\x00\x03fid)(.+)(?:\x08\x00)/Us', $data, $matches);
+			$dump = $matches[1];
+			return binInt($dump);
+		}
+		
+		private function getCreation($data){
+			preg_match('/(?:\x00\x0AcreatoreId)(.+)(?:)/', $data, $matches);
 			$arr = explode(chr(248),$matches[1]);
 			$creator = substr($arr[1],1);
 			$last_mod = substr($arr[2],1);
@@ -265,145 +283,209 @@
 			return $resp;
 		}
 		
-		public function getSecPos($data){
-			$match = preg_match('/(?:sPos)(.+)(?:)/', $data, $matches);
-			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump); $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			$coords = str_split($byteInt,32);
-			if(strlen($coords[2]) < 32){
-				$coords[2] = '00000000000000000000000000001010';
-			}
-			$arr = array();
-			$arr['x'] = $this->bin2Int($coords[0]);
-			$arr['y'] = $this->bin2Int($coords[1]);
-			$arr['z'] = $this->bin2Int($coords[2]);
+		private function getSecPos($data){
+			preg_match('/(?:\x00\x04sPos)(.+)(?:\x03\x00)/Us', $data, $matches);
+			$dump = str_split($matches[1],4);
+			$arr = array(
+				'x' => binInt($dump[0]),
+				'y' => binInt($dump[1]),
+				'z' => binInt($dump[2])
+			);
 			return $arr;
 		}
 		
-		public function getTransform($data, $type){
-			$char = chr(9);
-			$word = '';
-			if($type == 2 ||$type == 4 ||$type == 5){
-				$word = "AIConfig0";
-			}else if($type == 1 || $type == 3 || $type == 6){
-				$word = "noAI";
-			}
-			$match = preg_match('/(?:'.$char.'transform)(.+)(?:'.$word.')/s', $data, $matches);
-			$dump = substr(substr($matches[1],0,-3),5);
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) ; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			$bytesArr = str_split($byteInt,32);
+		private function getTransform($data, $type){
+			
+			preg_match('/(?:\x00\x09transform\x05\x00\x00\x00\x10)(.+)(?:[\x02\x00]|[\xD\x00])/s', $data, $matches);
+			$dump = str_split($matches[1],4);
 			$xArr = array(
-				'x' => $this->bin2Float($bytesArr[0]),
-				'y' => $this->bin2Float($bytesArr[1]),
-				'z' => $this->bin2Float($bytesArr[2])
+				'x' => binFloat($dump[0]),
+				'y' => binFloat($dump[1]),
+				'z' => binFloat($dump[2])
 			);
 			$yArr = array(
-				'x' => $this->bin2Float($bytesArr[4]),
-				'y' => $this->bin2Float($bytesArr[5]),
-				'z' => $this->bin2Float($bytesArr[6])
+				'x' => binFloat($dump[4]),
+				'y' => binFloat($dump[5]),
+				'z' => binFloat($dump[6])
 			);
 			$zArr = array(
-				'x' => $this->bin2Float($bytesArr[8]),
-				'y' => $this->bin2Float($bytesArr[9]),
-				'z' => $this->bin2Float($bytesArr[10])
+				'x' => binFloat($dump[8]),
+				'y' => binFloat($dump[9]),
+				'z' => binFloat($dump[10])
 			);
 			$oArr = array(
-				'x' => $this->bin2Float($bytesArr[12]),
-				'y' => $this->bin2Float($bytesArr[13]),
-				'z' => $this->bin2Float($bytesArr[14])
+				'x' => binFloat($dump[12]),
+				'y' => binFloat($dump[13]),
+				'z' => binFloat($dump[14])
 			);
 			$coords = array(
 				'x' => $xArr,
 				'y' => $yArr,
 				'z' => $zArr,
 				'o' => $oArr,
-				'float' => $this->bin2Float($bytesArr[15])
+				'float' => binFloat($dump[15])
 			);
 			return $coords;
 		}
 		
-		public function getDim($data){
-			$match = preg_match('/(?:maxPos)(.+)(?:)/', $data, $matches);
-			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump); $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			$coords = str_split($byteInt,32);
-			$dimArr = array();
-			$dimArr[] = $this->bin2Int($coords[0]);
-			$dimArr[] = $this->bin2Int($coords[1]);
-			$dimArr[] = $this->bin2Int($coords[2]);
-			$match = preg_match('/(?:minPos)(.+)(?:)/', $data, $matches);
-			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump)-10; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			$coords = str_split($byteInt,32);
-			$dimArr[] = $this->bin2Int($coords[0]);
-			$dimArr[] = $this->bin2Int($coords[1]);
-			$dimArr[] = $this->bin2Int($coords[2]);
+		private function getDim($data){
+			$chrs = chr(243).chr(248);
+			preg_match('/(?:\x00\x06maxPos)(.+)(?:\x0A\x00)/Us', $data, $matches1);
+			preg_match('/(?:\x00\x06minPos)(.+)(?:'.$chrs.'\x00)/', $data, $matches2);
+			$dump1 = str_split($matches1[1],4);
+			$dump2 = str_split($matches2[1],4);
+			
+			$maxPos = array(
+				'x' => binInt($dump1[0]),
+				'y' => binInt($dump1[1]),
+				'z' => binInt($dump1[2])
+			);
+			
+			$minPos = array(
+				'x' => binInt($dump2[0]),
+				'y' => binInt($dump2[1]),
+				'z' => binInt($dump2[2])
+			);
+			
+			$dimArr = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
 			
 			return $dimArr;
 		}
 		
-		public function getCredits($data){
-			$match = preg_match('/(?:credits)(.+)(?:spawn)/', $data, $matches);
-			$dump = substr($matches[1],0, -3);
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) ; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return bindec($byteInt);
+		private function getAI($data){
+			if(preg_match('/\x00\x04noAI\x00\x0A/Us', $data)) return "noAI";
+			$str = "\x08\x00\x05state\x00";
+			preg_match('/(?:\x00\x06AIM_AT\x08\x00\x05state\x00)(.+)(?:\x00\x0D)/Us', $data, $matches1);
+			preg_match('/(?:\x00\x04TYPE\x08\x00\x05state\x00)(.+)(?:\x00\x0D)/Us', $data, $matches2);
+			preg_match('/(?:\x00\x06ACTIVE\x08\x00\x05state\x00)(.+)(?:\x00\x00)/Us', $data, $matches3);
+			$dump1 = substr($matches1[1], 1);
+			$dump2 = substr($matches2[1], 1);
+			$dump3 = substr($matches3[1], 1);
+			
+			$arr = array(
+				'AIM_AT' => $dump1,
+				'TYPE' => $dump2,
+				'ACTIVE' => $dump3
+			);
+			
+			return $arr;
 		}
 		
-		public function getSector($data){
-			$match = preg_match('/(?:sector)(.+)(?:lspawn)/', $data, $matches);
-			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 0; $i < strlen($dump) -3 ; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
+		private function getContenairs($data){
+			if(preg_match('/\x00\x13controllerStructure\x00\x0D/Us', $data))return "noInventory";
+			preg_match('/(?:\x00\x09inventory)(.+)(?:\x00\x08shipMan0)/Us', $data, $matches);
+			$str = chr(0).chr(9)."inventory".chr(3);
+			$inventory = explode($str , $matches[1]);
+			$returnArr = array();
+			for($i = 0; $i < count($inventory); $i++){
+				$arr = explode("\x0D\x00",$inventory[$i]);
+				$index1 = explode("index", $arr[0]);
+				$index1 = str_split($index1[1], 4);
+				$pos = array(
+					'x' => binInt($index1[0]),
+					'y' => binInt($index1[1]),
+					'z' => binInt($index1[2])
+				);
+				$arr[1] = substr($arr[1], 19);
+				$slotsSplit = explode("\x0C\x00\x05types\x02\x00\x00", $arr[1]);
+				$slotsList = str_split($slotsSplit[0], 4);
+				$slotsUsed = count($slotsList) - 1;
+				$slotsArr = array();
+				
+				$blocksList = str_split($slotsSplit[1], 2);
+				$arr[2] = substr($arr[2],7);
+				$valueList = explode(chr(253), $arr[2]);
+				$valueList = array_slice($valueList, 1);
+				if(count($valueList))
+					$valueList[$slotsUsed -1] = substr($valueList[$slotsUsed -1], 0, 4);
+				for($j = 0; $j < $slotsUsed; $j++){
+					$blockId = $blocksList[$j];
+					$byte = null;
+					for($x = 0; $x < 2; $x++){
+						$byte .= sprintf("%08b", ord($blockId[$x]));
+					}
+					$blockId = bindec($byte);
+					$slotsArr[binInt($slotsList[$j])] = array (
+						'block' => $blockId,
+						'qty' => binInt($valueList[$j])
+					);
+				}
+				$returnArr[$i] = array(
+					'pos' => $pos,
+					'slots' => $slotsArr
+				);
+				
 			}
-			$bytesArr = str_split($byteInt,32);
+			return $returnArr;
+		}
+		
+		private function getWeapons($data){
+		}
+		
+		private function getCredits($data){
+			preg_match('/(?:\x00\x07credits)(.+)(?:\x09\x00\x05spawn)/', $data, $matches);
+			$dump = $matches[1];
+			return binInt($dump);
+		}
+		
+		private function getSpawn($data){
+			preg_match('/(?:\x00\x05spawn)(.+)(?:\x0D\x00\x09)/', $data, $matches);
+			$dump = str_split($matches[1], 4);
 			$xArr = array(
-				'x' => bindec($bytesArr[0]),
-				'y' => bindec($bytesArr[1]),
-				'z' => bindec($bytesArr[2])
+				'x' => binFloat($dump[0]),
+				'y' => binFloat($dump[1]),
+				'z' => binFloat($dump[2])
 			);
 			return $xArr;
 		}
 		
-		public function getPFac($data){
-			$str = '\x00'.chr(252);
-			$match = preg_match('/(?:pFac-v0)(.+)(?:'.$str.')/', $data, $matches);
+		private function getSector($data){
+			preg_match('/(?:\x00\x06sector)(.+)(?:\x09\x00\x6lspawn)/', $data, $matches);
+			$dump = str_split($matches[1], 4);
+			$xArr = array(
+				'x' => binInt($dump[0]),
+				'y' => binInt($dump[1]),
+				'z' => binInt($dump[2])
+			);
+			return $xArr;
+		}
+		
+		private function getLspawn($data){
+			preg_match('/(?:\x00\x06lspawn)(.+)(?:\x0A\x00\x07)/', $data, $matches);
+			$dump = str_split($matches[1], 4);
+			$xArr = array(
+				'x' => binFloat($dump[0]),
+				'y' => binFloat($dump[1]),
+				'z' => binFloat($dump[2])
+			);
+			return $xArr;
+		}
+		
+		private function getLsector($data){
+			preg_match('/(?:\x00\x07lsector)(.+)(?:\x0D\x00\x07)/', $data, $matches);
+			$dump = str_split($matches[1], 4);
+			$xArr = array(
+				'x' => binInt($dump[0]),
+				'y' => binInt($dump[1]),
+				'z' => binInt($dump[2])
+			);
+			return $xArr;
+		}
+		
+		private function getPFac($data){
+			preg_match('/(?:\x00\x07pFac-v0\xFD)(.+)(?:\x00\xFC)/', $data, $matches);
 			$dump = $matches[1];
-			$byteInt = null;
-			for ($i = 1; $i < strlen($dump) ; $i++){
-				$byteInt .= sprintf("%08b", ord($dump[$i]));
-			}
-			return bindec($byteInt);
+			return binInt($dump);
 		}
-		
-		//DEPRECATED==============================>
-		public function getDockedTo($data){
-			$match = preg_match('/(?:dockedTo)(.+)(?:)/', $data, $matches);
-			$dump = substr($matches[1],2);
-			return $dump;
-		}
-		//========================================>
 
 		
-	//============================= Faction Decoder =============================//
+	//============================= Catalog Decoder =============================//
 
-		public function decodeCat($data){
-			$unicode = "\x{09}\x{0a}\x{0d}\x{20}-\x{7e}"; // basic ascii chars plus CR,LF and TAB
+		private function decodeCat($data){
+			$catalog = array();
 			preg_match_all('/(?:'.chr(243).chr(248).')(.+)(?:'.chr(2).'r0)/Us', $data, $cdata);
 			$shipsArr = explode(chr(243).chr(248), $cdata[1][0]);
 			for($i = 0; $i < count($shipsArr); $i++){
@@ -426,7 +508,150 @@
 			return $catalog;
 		}
 		
-	//============================= Binary Decoder =============================//
+		
+	//============================= Header Decoder =============================//
+	
+		private function decodeHeader($file){
+			$header = array();
+			
+			$stream = fopen($file, "rb");
+			$header['int_a'] = $this->readInt32($stream);
+			$header['int_b'] = $this->readInt32($stream);
+			$header['bounds_a'] = array($this->readFloat($stream), $this->readFloat($stream), $this->readFloat($stream));
+			$header['bounds_b'] = array($this->readFloat($stream), $this->readFloat($stream), $this->readFloat($stream));
+			$blockTblLen = $this->readInt32($stream);
+			$header['blockTableLen'] = $blockTblLen;
+			$header['blocks'] = array();
+			for($i = 0; $i < $blockTblLen; $i++){
+				$index = $this->readInt16($stream);
+				$qty = $this->readInt32($stream);
+				$header['blocks'][$index] = $qty;
+			}
+			fclose($stream);
+			return $header;
+		}
+		
+		
+	//============================= Logic Decoder =============================//
+	
+		private function decodeLogic($file){
+			$logic = array();
+			
+			$stream = fopen($file, "rb");
+			$fileSize = filesize($file);
+			while (ftell($stream) < $fileSize){
+				$logic['int_a'] = $this->readInt32($stream);
+				$numControls = $this->readInt32($stream);
+				
+				$logic['controllers'] = array();
+				
+				for($i = 0; $i < $numControls; $i++){
+					$dict = array();
+					$dict['pos'] = array($this->readInt16($stream), $this->readInt16($stream), $this->readInt16($stream));
+					$numGroups = $this->readInt32($stream);
+					$dict['q'] = array();
+					
+					for($j = 0; $j < $numGroups; $j++){
+						$tag = $this->readInt16($stream);
+						$numBlocks = $this->readInt32($stream);
+						
+						$dict['q'][$tag] = array();
+						
+						for($x = 0; $x < $numBlocks; $x++){
+							array_push($dict['q'][$tag], array($this->readInt16($stream), $this->readInt16($stream), $this->readInt16($stream)));
+						}
+					}
+					array_push($logic['controllers'], $dict);
+				}
+			}
+			fclose($stream);
+			return $logic;
+		}
+	
+	
+	//============================= Meta Decoder =============================//
+	
+		private function decodeMeta($file){
+			$meta = array();
+			
+			$stream = fopen($file, "rb");
+			$fileSize = filesize($file);
+			$meta['int_a'] = $this->readInt32($stream);
+			$meta['byte_a'] = bindec(sprintf("%08b", ord(fread($stream, 1))));
+			
+			if($meta['byte_a'] == 3){
+				$numDocked = $this->readInt32($stream);
+				$meta['docked'] = array();
+				for($i = 0; $i < $numDocked; $i++){
+					$nLenght = bindec(fread($stream, 1));
+					$name = fread($stream, $nLenght);
+					$q = array($this->readInt32($stream), $this->readInt32($stream), $this->readInt32($stream));
+					$a = array($this->bin2Float($stream), $this->bin2Float($stream), $this->bin2Float($stream));
+					$docking = $this->readInt16($stream);
+					$arr = array(
+						'name' => $name,
+						'q' => $q,
+						'a' => $a,
+						'dockID' => $docking
+					);
+					array_push($meta['docked'], $arr);
+				}
+				$meta['byte_b'] = bindec(sprintf("%08b", ord(fread($stream, 1))));
+				fread($stream, 4);
+				$index1 = $this->readStr($stream);
+				$meta[$index1] = array();
+				fread($stream, 2);
+				$index2 = $this->readStr($stream);
+				$meta[$index1][$index2] = array();
+				if(fread($stream, 1) != "\x00"){
+				}
+				fread($stream, 2);
+				$index1 = $this->readStr($stream);
+				$meta[$index1] = array();
+			}
+			fclose($stream);
+			
+			return $meta;
+		}
+		
+			
+	//============================= Old Binary Decoder =============================//
+	
+	//DEPRECATED===================================================================>//
+		private function readInvStruct($arr, $stream){
+			
+		}
+		private function readStr($stream){
+			$strLength = bindec(sprintf("%08b", ord(fread($stream, 1))));
+			return fread($stream, $strLength);
+		}
+	
+		private function readInt16($stream){
+			$read = fread($stream, 2);
+			$byte = null;
+			for($i = 0; $i < 2; $i++){
+				$byte .= sprintf("%08b", ord($read[$i]));
+			}
+			return bindec($byte);
+		}
+	
+		private function readInt32($stream){
+			$read = fread($stream, 4);
+			$byte = null;
+			for($i = 0; $i < 4; $i++){
+				$byte .= sprintf("%08b", ord($read[$i]));
+			}
+			return $this->bin2Int($byte);
+		}
+		
+		private function readFloat($stream){
+			$read = fread($stream, 4);
+			$byte = null;
+			for($i = 0; $i < 4; $i++){
+				$byte .= sprintf("%08b", ord($read[$i]));
+			}
+			return $this->bin2Float($byte);
+		}
 		
 		private function bin2Int($data){
 			if(strlen($data) != 32){
@@ -459,8 +684,8 @@
 			if(strlen($data) != 32){
 				return -1;
 			} else {
-				if($data === $this->null32){
-					return $this->nullFloat;
+				if($data === NULL32){
+					return NULLFLOAT;
 				} else {
 					$hex = substr(chunk_split(base_convert($data, 2, 16), 2, " "), 0, -1);
 					$hexRev = $this->hexReverse($hex);
@@ -479,8 +704,8 @@
 			if(strlen($data) != 64){
 				return -1;
 			} else {
-				if($data === $this->null64){
-					return $this->nullFloat;
+				if($data === NULL64){
+					return NULL64;
 				} else {
 					$hex = substr(chunk_split(base_convert($data, 2, 16), 2, " "), 0, -1);
 					$hexRev = $this->hexReverse($hex);
@@ -519,11 +744,11 @@
 			}
 			return $r;
 		}
-
+	//<=========================================================================DEPRECATED//
 
 	//============================= Other StarMade Functions =============================//
 
-		public function getServerInfo(){
+		private function getServerInfo(){
 			$buffer = '';
 			$host = SM_HOST;
 			$port = SM_PORT;
@@ -580,5 +805,113 @@
 				return false;
 			}
 		}
+	}
+	
+	function binInt($str){
+		if(strlen($str) != 4){
+			die("Error: Invalide byte format.\n");
+		}
+		else{
+			$byte = null;
+			for($i = 0; $i < 4; $i++){
+				$byte .= sprintf("%08b", ord($str[$i]));
+			}
+			if($byte[0] == "1"){
+				$out = "";
+				$mode = "init";
+				for($x = strlen($byte)-1; $x >= 0; $x--) {
+					if($mode != "init")
+						$out = ($byte[$x] == "0" ? "1" : "0").$out;
+					else{
+						if($byte[$x] == "1"){
+							$out = "1".$out;
+							$mode = "invert";
+						}
+						else
+							$out = "0".$out;
+					}
+				}
+				return bindec($out) *-1;
+			}
+			else{
+				return bindec($byte);
+			}
+		}
+	}
+	
+	function binFloat($str){
+		if(strlen($str) != 4){
+			die("Error: Invalide byte format.\n");
+		}
+		else{
+			$byte = null;
+			for($i = 0; $i < 4; $i++){
+				$byte .= sprintf("%08b", ord($str[$i]));
+			}
+			if($byte === NULL32){
+				return NULLFLOAT;
+			}
+			else{
+				$hex = substr(chunk_split(base_convert($byte, 2, 16), 2, " "), 0, -1);
+				$hexRev = hexReverse($hex);
+				$hexi = hexify($hexRev);
+				if($hexi === false) die("Invalid input\n");
+				$decode = unpack("f", $hexi);
+				if($decode[1] == -0){
+					$decode[1] = (float)0;
+				}
+				return $decode[1];
+			}
+		}
+	}
+	
+	function binDouble($str){
+		if(strlen($str) != 8){
+			die("Error: Invalide byte format.\n");
+		}
+		else{
+			$byte = null;
+			for($i = 0; $i < 8; $i++){
+				$byte .= sprintf("%08b", ord($str[$i]));
+			}
+			if($byte === NULL64){
+				return NULLFLOAT;
+			}
+			else{
+				$hex = substr(chunk_split(base_convert($byte, 2, 16), 2, " "), 0, -1);
+				$hexRev = hexReverse($hex);
+				$hexi = hexify($hexRev);
+				if($hexi === false) die("Invalid input\n");
+				$decode = unpack("d", $hexi);
+				return $decode[1];
+			}
+		}
+	}
+	
+	function hexReverse($hex){
+		$r = '';
+		$hexArray = explode(' ', $hex);
+		foreach ($hexArray as $z) {
+			$r = $z . ' ' . $r;
+		}
+		return substr($r, 0, -1);
+	}
+	
+	function hexify($hex){
+		static $hexVal = array(
+			'0'=>0, '1'=>1, '2'=>2, '3'=>3,
+			'4'=>4, '5'=>5, '6'=>6, '7'=>7,
+			'8'=>8, '9'=>9, 'A'=>10, 'B'=>11,
+			'C'=>12, 'D'=>13, 'E'=>14, 'F'=>15,
+			'a'=>10, 'b'=>11, 'c'=>12, 'd'=>13, 'e'=>14, 'f'=>15,
+		);
+		$r = '';
+		$hexArray = explode(' ', $hex);
+		foreach ($hexArray as $z) {
+			if (!ctype_xdigit($z)) return false;
+			$tmp = $hexVal[$z{0}] * 16 + $hexVal[$z{1}];
+			$r .= chr($tmp);
+		}
+		return $r;
 	}
 ?>
