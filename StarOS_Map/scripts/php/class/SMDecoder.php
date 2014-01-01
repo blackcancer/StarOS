@@ -1,5 +1,4 @@
 <?php
-	header('Content-Type: text/html; charset=UTF-8');
 	/*
 		Based on: SMDecoder Class
 		Description: Intergrate Starmade files within your own projects.
@@ -10,6 +9,8 @@
 		website: http://initsysrev.net
 		support: blackcancer@initsysrev.net
 	*/
+
+	header('Content-Type: text/html; charset=UTF-8');
 
 	define("NULL32", "00000000000000000000000000000000");
 	define("NULL64", "0000000000000000000000000000000000000000000000000000000000000000");
@@ -23,41 +24,41 @@
 			$data = file_get_contents($file);
 			$ext = pathinfo($file, PATHINFO_EXTENSION);
 			
-			if($ext == "fac"){
-				$entity = $this->decodeFac($data);
-			}
-			else if($ext == "ent"){
-				$type = $this->getType($file);
-				if($type > 0 && $type < 6){
-					$entity = $this->decodeEnt($data, $type);
-				}
-				else if($type == 6){
-					$entity = $this->decodePlayChar($data, $type);
-				}
-				else if($type == 7){
-					$entity = $this->decodePlayState($data, $file);
-				}
-				else {
-					return -1;
-				}
-			}
-			else if($ext == "cat"){
-				$entity = $this->decodeCat($data);
-			}
-			else if($ext == "smbph"){
-				$entity = $this->decodeHeader($file);
-			}
-			else if($ext == "smbpl"){
-				$entity = $this->decodeLogic($file);
-			}
-			else if($ext == "smbpm"){
-				$entity = $this->decodeMeta($file);
-			}
-			else if($ext == "smd2"){
-				echo "starmade mesh file format";
-			}
-			else{
-				die("Erreur : Unknow file format");
+			switch($ext){                                
+				case "fac":
+					$entity = $this->decodeFac($data);
+					break;
+				case "ent":
+					$type = $this->getType($file);
+					switch($type){
+						case 6:
+							$entity = $this->decodePlayChar($data, $type);
+							break;
+						case 7:
+							$entity = $this->decodePlayState($data, $file);
+							break;
+						default:
+							$entity = $this->decodeEnt($data, $type);
+							break;
+					}
+					break;
+				case "cat":
+					$entity = $this->decodeCat($data);
+					break;
+				case "smbph":
+					$entity = $this->decodeHeader($file);
+					break;
+				case "smbpl":
+					$entity = $this->decodeLogic($file);
+					break;
+				case "smbpm":
+					$entity = $this->decodeMeta($file);
+					break;
+				case "smd2":
+					echo "starmade mesh file format";
+					break;
+				default:
+					die("Unknown file format");
 			}
 			return $entity;
 		}
@@ -139,20 +140,20 @@
 		private function decodeEnt($data, $type){
 			$arr = array();
 			
-			$arr['uid'] = $this->getUID($data);			//get Unique ID
-			$arr['type'] = $type;						//get Type
-			$arr['name'] = $this->getName($data);		//get Name
+			$arr['uid'] = $this->getUID($data);					//get Unique ID
+			$arr['type'] = $type;								//get Type
+			$arr['name'] = $this->getName($data);				//get Name
 			$arr['mass'] = (float)$this->getMass($data);		//get Mass
 			if($type == 2 || $type == 4 || $type == 5){
 				$arr['pw'] = (double)$this->getPw($data);		//get Power Capacity
 				$arr['sh'] = (double)$this->getSh($data);		//get Shield Capacity
 			} else {
-				$arr['pw'] = (double)0;					//set Power Capacity 0
-				$arr['sh'] = (double)0;					//set Shield Capacity 0
+				$arr['pw'] = (double)0;							//set Power Capacity 0
+				$arr['sh'] = (double)0;							//set Shield Capacity 0
 			}
-			$arr['fid'] = $this->getFID($data);	//get Faction ID
-			$arr['AIConfig'] = $this->getAI($data);		//get AIConfig
-			$arr['container'] = $this->getContenairs($data); //get inventory and content
+			$arr['fid'] = $this->getFID($data);					//get Faction ID
+			$arr['AIConfig'] = $this->getAI($data);				//get AIConfig
+			$arr['container'] = $this->getContenairs($data); 	//get inventory and content
 			$creation = $this->getCreation($data);
 			if($creation[0] == chr(0)){
 				$creation[0] = "<system>";
@@ -160,16 +161,16 @@
 			if($creation[1] == chr(0)){
 				$creation[1] = "";
 			}
-			$arr['creator'] = $creation[0];				//get Creator
-			$arr['lastMod'] = $creation[1];				//get Last_Mod
-			$arr['sPos'] = $this->getSecPos($data);		//get sPos
+			$arr['creator'] = $creation[0];						//get Creator
+			$arr['lastMod'] = $creation[1];						//get Last_Mod
+			$arr['sPos'] = $this->getSecPos($data);				//get sPos
 			$transform = $this->getTransform($data, $arr['type']);
-			$arr['transformX'] = $transform['x'];		//get transformX
-			$arr['transformY'] = $transform['y'];		//get transformY
-			$arr['transformZ'] = $transform['z'];		//get transformZ
-			$arr['localPos'] = $transform['o'];			//get LocalPos
-			$arr['dim'] = $this->getDim($data);			//get DIM
-			$arr['genId'] = $creation[2];				//get Gen_ID
+			$arr['transformX'] = $transform['x'];				//get transformX
+			$arr['transformY'] = $transform['y'];				//get transformY
+			$arr['transformZ'] = $transform['z'];				//get transformZ
+			$arr['localPos'] = $transform['o'];					//get LocalPos
+			$arr['dim'] = $this->getDim($data);					//get DIM
+			$arr['genId'] = $creation[2];						//get Gen_ID
 			
 			return $arr;	
 		}
@@ -181,12 +182,12 @@
 			$arr['type'] = $type;
 			$arr['name'] = $matches[1];
 			$arr['mass'] = (float)$this->getMass($data);		//get Mass
-			$arr['sPos'] = $this->getSecPos($data);		//get sPos
+			$arr['sPos'] = $this->getSecPos($data);				//get sPos
 			$transform = $this->getTransform($data, $entity['Type']);
-			$arr['transformX'] = $transform['x'];		//get transformX
-			$arr['transformY'] = $transform['y'];		//get transformY
-			$arr['transformZ'] = $transform['z'];		//get transformZ
-			$arr['localPos'] = $transform['o'];			//get LocalPos
+			$arr['transformX'] = $transform['x'];				//get transformX
+			$arr['transformY'] = $transform['y'];				//get transformY
+			$arr['transformZ'] = $transform['z'];				//get transformZ
+			$arr['localPos'] = $transform['o'];					//get LocalPos
 			
 			return $arr;
 		}
@@ -196,6 +197,7 @@
 			preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
 			$arr['name'] = $matches[1];
 			$arr['credits'] = $this->getCredits($data);
+			$arr['inventory'] = $this->getPlayInv($data);
 			$arr['spawn'] = $this->getSpawn($data);
 			$arr['sector'] = $this->getSector($data);
 			$arr['lspawn'] = $this->getLspawn($data);
@@ -206,12 +208,12 @@
 		}
 		
 		//========== sub function ==========//
-		private function getUID($data){
+		public function getUID($data){
 			preg_match('/(?:ENTITY_)(.+)(?:)/', $data, $matches);
 			return $matches[0]; 
 		}
 		
-		private function getType($data){
+		public function getType($data){
 			preg_match('/(?:ENTITY_)([A-Z]+)(?:_)/', $data, $matches);
 			if(isset($matches[1])){
 				if(strpos($matches[1], 'FLOATING_ITEMS_ARCHIVE') !== false){
@@ -238,32 +240,32 @@
 			}
 		}
 		
-		private function getName($data){
+		public function getName($data){
 			preg_match('/(?:\x00\x08realname)(.+)(?:\x0d\x00)/Us', $data, $matches);
 			$dump = substr($matches[1],2);
 			return $dump;
 		}
 		
 		private function getMass($data){
-			preg_match('/(?:\x00\x04mass)(.+)(?:\x0C\x00)/Us', $data, $matches);
+			preg_match('/(?:\x00\x04mass)(.+)(?:\x0C\x00\x09transform)/Us', $data, $matches);
 			$dump = $matches[1];
 			return round(binFloat($dump), 1);
 		}
 		
 		private function getPw($data){
-			preg_match('/(?:\x00\x02pw)(.+)(?:\x06\x00)/Us', $data, $matches);
+			preg_match('/(?:\x00\x02pw)(.+)(?:\x06\x00\x02sh)/Us', $data, $matches);
 			$dump = $matches[1];
 			return round(binDouble($dump),1);
 		}
 		
 		private function getSh($data){
-			preg_match('/(?:\x00\x02sh)(.+)(?:\x01\x00)/Us', $data, $matches);
-			$dump = $matches[1];
+			preg_match('/(?:\x00\x02sh)(.+)(?:ex)/Us', $data, $matches);
+			$dump = substr($matches[1],0,-3);
 			return round(binDouble($dump),1);
 		}
 		
 		private function getFID($data){
-			preg_match('/(?:\x00\x03fid)(.+)(?:\x08\x00)/Us', $data, $matches);
+			preg_match('/(?:\x00\x03fid)(.+)(?:\x08\x00\x03own)/Us', $data, $matches);
 			$dump = $matches[1];
 			return binInt($dump);
 		}
@@ -283,8 +285,8 @@
 			return $resp;
 		}
 		
-		private function getSecPos($data){
-			preg_match('/(?:\x00\x04sPos)(.+)(?:\x03\x00)/Us', $data, $matches);
+		public function getSecPos($data){
+			preg_match('/(?:\x00\x04sPos)(.+)(?:\x03\x00\x03fid)/Us', $data, $matches);
 			$dump = str_split($matches[1],4);
 			$arr = array(
 				'x' => binInt($dump[0]),
@@ -296,7 +298,7 @@
 		
 		private function getTransform($data, $type){
 			
-			preg_match('/(?:\x00\x09transform\x05\x00\x00\x00\x10)(.+)(?:[\x02\x00]|[\xD\x00])/s', $data, $matches);
+			preg_match('/(?:\x00\x09transform\x05\x00\x00\x00\x10)(.+)(?:[\x02]|[\x0D]\x00)/s', $data, $matches);
 			$dump = str_split($matches[1],4);
 			$xArr = array(
 				'x' => binFloat($dump[0]),
@@ -330,8 +332,8 @@
 		
 		private function getDim($data){
 			$chrs = chr(243).chr(248);
-			preg_match('/(?:\x00\x06maxPos)(.+)(?:\x0A\x00)/Us', $data, $matches1);
-			preg_match('/(?:\x00\x06minPos)(.+)(?:'.$chrs.'\x00)/', $data, $matches2);
+			preg_match('/(?:\x00\x06maxPos)(.+)(?:\x0A\x00\x06minPos)/Us', $data, $matches1);
+			preg_match('/(?:\x00\x06minPos)(.+)(?:'.$chrs.'\x00\x04NONE)/', $data, $matches2);
 			$dump1 = str_split($matches1[1],4);
 			$dump2 = str_split($matches2[1],4);
 			
@@ -429,6 +431,37 @@
 			preg_match('/(?:\x00\x07credits)(.+)(?:\x09\x00\x05spawn)/', $data, $matches);
 			$dump = $matches[1];
 			return binInt($dump);
+		}
+		
+		private function getPlayInv($data){
+			preg_match('/(?:\x00\x05slots\x03)(.+)(?:\x0C\x00\x05types)/Us', $data, $matches1);
+			preg_match('/(?:\x00\x05types\x02\x00\x00)(.+)(?:\x0D\x00\x06values)/Us', $data, $matches2);
+			preg_match('/(?:\x00\x06values)(.+)(?:\x0A\x00\x06sector)/Us', $data, $matches3);
+			$slots = str_split($matches1[1], 4);
+			$blocks = str_split($matches2[1], 2);
+			$qtys = str_split($matches3[1], 5);
+			var_dump($slots);
+			var_dump($blocks);
+			var_dump($qtys);
+			
+			for($i = 0; $i < count($qtys); $i++){
+				$qtys[$i] = substr($qtys[$i], 1);
+			}
+			
+			$inv = array();
+			for($i = 0; $i < count($slots) - 1; $i++){
+				$str = $blocks[$i];
+				$byte = null;
+				for($j = 0; $j < 2; $j++){
+					$byte .= sprintf("%08b", ord($str[$j]));
+				}
+				$inv[binInt($slots[$i])] = array(
+					'block' => bindec($byte),
+					'qty' => binInt($qtys[$i])
+				);
+			}
+			
+			return $inv;
 		}
 		
 		private function getSpawn($data){
@@ -614,7 +647,7 @@
 			return $meta;
 		}
 		
-			
+	
 	//============================= Old Binary Decoder =============================//
 	
 	//DEPRECATED===================================================================>//
@@ -913,5 +946,63 @@
 			$r .= chr($tmp);
 		}
 		return $r;
+	}
+	
+	function si2bin($si, $bits=32) {
+		if ($si >= -pow(2,$bits-1) and $si <= pow(2,$bits-1) ){
+			if ($si >= 0){ // positive or zero
+			
+				$bin = base_convert($si,10,2);
+				// pad to $bits bit
+				$bin_length = strlen($bin);
+				if ($bin_length < $bits) $bin = str_repeat ( "0", $bits-$bin_length).$bin;
+			}
+			else{// negative
+			
+				$si = -$si-pow(2,$bits);
+				$bin = base_convert($si,10,2);
+				$bin_length = strlen($bin);
+				if ($bin_length > $bits) $bin = str_repeat ( "1", $bits-$bin_length).$bin;
+			}
+			return $bin;
+		}
+	} 
+	
+	function is_VectorArr($arr, $type){
+		if(!is_array($arr)){
+			return false;
+		}
+		if(count($arr) != 3){
+			return false;
+		}
+		for($i = 0; $i < count($arr); $i++){
+			switch($type){
+				case "i":
+					if(!is_int($arr[$i])){
+						return false;
+					}
+					break;
+				case "f":
+					if(!is_float($arr[$i])){
+						return false;
+					}
+					break;
+				case "d":
+					if(!is_double($arr[$i])){
+						return false;
+					}
+					break;
+				case "a":
+					if(!is_array($arr[$i])){
+						return false;
+					}
+					break;
+				default:
+					return false;
+					break;
+			}
+		}
+		
+		return true;
 	}
 ?>
