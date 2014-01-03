@@ -781,10 +781,8 @@
 
 	//============================= Other StarMade Functions =============================//
 
-		private function getServerInfo(){
+		private function getServerInfo($host, $port){
 			$buffer = '';
-			$host = SM_HOST;
-			$port = SM_PORT;
 			$packet = pack("N", 9).pack("c", 42).pack("n", -1).pack("c", 1).pack("c", 111).pack("N", 0);
 			
 			$octet = 8;
