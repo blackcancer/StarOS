@@ -1,0 +1,88 @@
+"sessid":(string),
+"session_name":(string),
+"user":{
+	"uid":(int),
+	"name":(string),
+	"theme":"",
+	"signature":"",
+	"signature_format":"filtered_html",
+	"created": (microtime()),
+	"access":(microtime()),
+	"login":(microtime()),
+	"status":(int),
+	"timezone":"Europe\/Paris",
+	"language":"",
+	"picture":"",
+	"data":{
+		"user_relationships_ui_auto_approve":"",
+		"user_relationship_mailer_send_mail":(int),
+		"user_relationships_allow_private_message":"on all users"
+	},
+	"roles":{
+		"item":"upgraded user"
+	},
+	"field_login_code":{
+		"und":{
+			"item":{
+				"value":"1388677134959-30464",
+				"format":"",
+				"safe_value":"1388677134959-30464"
+			}
+		}
+	},
+	"rdf_mapping":{
+		"rdftype":{
+			"item":"sioc:UserAccount"
+		},
+		"name":{
+			"predicates":{
+				"item":"foaf:name"
+			}
+		},
+		"homepage":{
+			"predicates":{
+				"item":"foaf:page"
+			},
+			"type":"rel"
+		}
+	},
+	"badges_all":{
+		"item":{
+			"bid":3,
+			"uid":(int) userUID,
+			"weight":0,
+			"name":"StarMade Owner",
+			"image":"public:\/\/badges\/starmade-icon32x32_0.png",
+			"href":"buy",
+			"unhideable":0,
+			"fixedweight":0,
+			"doesnotcounttolimit":0,
+			"userweight":"",
+			"tid":"",
+			"rid":4,
+			"coalescedweight":0,
+			"class":"badge badge-3 starmade-owner"
+		}
+	},
+	"badges_count":1,
+	"badges":{
+		"item":{
+			"bid":3,
+			"uid":(int) userUID,
+			"weight":0,
+			"name":"StarMade Owner",
+			"image":"public:\/\/badges\/starmade-icon32x32_0.png",
+			"href":"buy",
+			"unhideable":0,
+			"fixedweight":0,
+			"doesnotcounttolimit":0,
+			"userweight":"",
+			"tid":"",
+			"rid":4,
+			"coalescedweight":0,
+			"class":"badge badge-3 starmade-owner"
+		}
+	},
+	"twitter_accounts":"",
+	"privatemsg_disabled":""
+}
