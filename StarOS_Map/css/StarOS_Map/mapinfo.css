@@ -1,0 +1,61 @@
+/*
+   Product: Info box stylesheet of StarOS Map project.
+   Description: This stylesheet contain all mapInfo balises css.
+   License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+   Version: 0.1								Date: 2014-
+   By Blackcancer
+  
+   website: 
+   support: blackcancer@initsysrev.net
+*/
+
+@charset "utf-8";
+
+#mapInfoButton{
+	background-image: url(../../res/img/starmap/buttonUnroll.png);
+	position: absolute;
+	width: 220px;
+	height:	20px;
+}
+
+#mapInfLabel{
+	position: absolute;
+	left: 10px;
+	top: 4px;
+	font-size: 10px;
+	font-style: italic;
+}
+
+#mapInfo{
+	background-image: url(../../res/img/starmap/mapInfoMain.png);
+	position: absolute;
+	top: 19px;
+	width: 220px;
+	height:	270px;
+	margin:0px; 
+	padding:0px;
+}
+
+#mapInfBrd{
+	background-image: url(../../res/img/starmap/mapInfoBot.png);
+	position: absolute;
+	width: 220px;
+	height: 11px;
+}
+	
+	#mapInfName, #mapInfType, #mapInfPos, #mapInfFac, #mapInfMass, #mapInfPow, #mapInfSh, #mapInfShRate{
+		position: absolute;
+		left: 10px;
+	}
+
+	#mapInfPic{
+		position: absolute;
+		top: 5px;
+	}
+	
+	#mapInfName{
+		position: absolute;
+		margin:0px; 
+		font-size: 12px;
+	}

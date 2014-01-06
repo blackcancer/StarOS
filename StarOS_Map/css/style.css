@@ -12,5 +12,7 @@
 
 @charset "utf-8";
 @import url(lib/default.css);
-@import url(StarOS/StarMap/mapinfo.css);
-@import url(StarOS/StarMap/sysselect.css);
+@import url(StarOS_Map/mapinfo.css);
+@import url(StarOS_Map/maplogin.css);
+@import url(StarOS_Map/starmap.css);
+@import url(StarOS_Map/sysselect.css);

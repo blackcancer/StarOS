@@ -2,59 +2,84 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>StarOS Map</title>
+
+		<title>StarOS_Map Devel</title>
 		
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta http-equiv="Content-Language" content="fr"/>
-        <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-		
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="Content-Language" content="fr"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 		<meta name="Generator" content="NPP-Plugin"/>
 		<meta name="Author" content="Blackcancer"/>
-		<meta name="Description" content="A starmap for StarMade, this project is subproject of StarOS."/>
+		<meta name="Description" content="A starmap for StarMade, this project is subproject of StarOS"/>
 		<meta name="Keywords" content="starmap, map, StarMade, StarOS"/>
-		
-        <link rel="shortcut icon" href="res/favicon.ico" type="image/x-icon" />
-        <link rel="icon" href="res/favicon.ico" type="image/x-icon" />
-		
-        <link rel="stylesheet" type="text/css" media="all" href="css/style.css" />
-        
-        <!--### Loading Librairy ### -->
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-        <!--[if lt IE 9]>
-            <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-        <![endif]-->
-        <script type="text/javascript" src="scripts/js/lib/mrdoobThree.min.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/THREEx.FullScreen.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/THREEx.KeyboardState.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/THREEx.WindowResize.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/OrbitControls.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/Detector.js"></script>
-        <script type="text/javascript" src="scripts/js/lib/Stats.js"></script>
-        
-        <!--### Loading StarOS ### -->
-        <script type="text/javascript" src="scripts/js/StarOS/StarOS_Map/StarOS_Map.js"></script>
-        <script type="text/javascript" src="scripts/js/StarOS/StarOS_Map/StarmapEntity.js"></script>
+
+		<link rel="shortcut icon" href="res/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="res/favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" media="all" href="css/style.css" />
+
 	</head>
+
 	<body>
-    <div>
-    	<div id="starmap"></div>
-        <div id="mapInfoButton"></div>
-        <div id="mapInfo" style="display:none"></div>
-        <div id="sysSelect"></div>
-    </div>
+
+		<div id="StarOS_map">
+			<div id="starmap_cornerLT"></div>
+			<div id="starmap_borderT"></div>
+			<div id="starmap_cornerRT"></div>
+			<div id="starmap_borderL"></div>
+			<div id="starmap">
+				<div id="StarOS_MapLogin">
+					<div id="MapLogin_cornerLT"></div>
+					<div id="MapLogin_borderT"></div>
+					<div id="MapLogin_borderL"></div>
+					<div id="MapLogin_body"></div>
+				</div>
+				<div id="mapInfoButton"><label id="mapInfLabel">Informations:</label></div>
+				<div id="mapInfo" style="display:none"></div>
+				<div id="sysSelect">
+					<label id="sysSelectLX">x: </label>
+					<label id="sysSelectLY">y: </label>
+					<label id="sysSelectLZ">z: </label>
+				</div>
+			</div>
+			<div id="starmap_borderR"></div>
+			<div id="starmap_cornerLB"></div>
+			<div id="starmap_borderB"></div>
+			<div id="starmap_cornerRB"></div>
+		</div>
+
+		<!--### Loading Librairy ### -->
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+		<!--[if lt IE 9]>
+			<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		<script type="text/javascript" src="scripts/lib/mrdoobThree.min.js"></script>
+		<script type="text/javascript" src="scripts/lib/THREEx.FullScreen.js"></script>
+		<script type="text/javascript" src="scripts/lib/THREEx.KeyboardState.js"></script>
+		<script type="text/javascript" src="scripts/lib/OrbitControls.js"></script>
+		<script type="text/javascript" src="scripts/lib/Detector.js"></script>
+		<script type="text/javascript" src="scripts/lib/Stats.js"></script>
+
+		<!--### Loading StarOS ### -->
+		<script type="text/javascript" src="scripts/StarOS_Map/StarmapEntity.js"></script>
+		<script type="text/javascript" src="scripts/StarOS_Map/StarOS_Map.js"></script>
+
 		<script type="text/javascript">
-		<!--
 			$(document).ready(function(){
 				starmap = new StarOS_Map({
 					parentId: 'starmap',
-					width: window.innerWidth - 18,
-					height: window.innerHeight - 18,
+					debug: false,
 					showShip: true,
-					showAsteroid: true
+					showAsteroid: true,
+					useLogin: true,
+					showEntInfo: {
+						faction: true,
+						mass: true,
+						power: true,
+						shield: true
+					},
 				});
 			});
-		-->
 		</script>
 	</body>
 </html>

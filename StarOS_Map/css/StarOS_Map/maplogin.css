@@ -1,0 +1,95 @@
+/*
+   Product: Info box stylesheet of StarOS Map project.
+   Description: This stylesheet contain all mapInfo balises css.
+   License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+   Version: 0.1								Date: 2014-
+   By Blackcancer
+  
+   website: 
+   support: blackcancer@initsysrev.net
+*/
+
+#StarOS_MapLogin{
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	width: 213px;
+	height: 113px;
+}
+
+	#MapLogin_cornerLT, #MapLogin_borderT, #MapLogin_borderL{
+		position: absolute;
+	}
+
+	#MapLogin_cornerLT, #MapLogin_borderT{
+		height: 13px;
+	}
+
+	#MapLogin_cornerLT, #MapLogin_borderL{
+		width: 13px;
+	}
+	
+	#MapLogin_borderT{
+		left:13px;
+		width: 213px;
+	}
+	
+	#MapLogin_borderL{
+		top: 13px;
+		height: 113px;
+	}
+	
+	#MapLogin_body,#StarOS_LoginForm{
+		position: absolute;
+		right: 0px;
+		bottom: 0px;
+		width: 200px;
+		height: 100px;
+	}
+	
+		#StarOS_UserField, #StarOS_PassField, #StarOS_UserInput, #StarOS_PassInput, #StarOS_ConnectBtn{
+			position: absolute;
+		}
+		
+		#StarOS_ConnectBtn{
+			background: url(../../res/img/starmap/btn_login.png);
+			background-position: 0px 0px;
+			border: none;
+			width: 104px;
+			height: 44px;
+			right: 0px;
+			bottom: 0px;
+		}
+		
+		#StarOS_ConnectBtn:hover{
+			border: none;
+		}
+		
+		#StarOS_PassInput, #StarOS_UserInput{
+			background: #000;
+			right: 0px;
+			width: 120px;
+			border: 1px solid #b4ffff;
+			border-radius: 5px;
+			box-shadow: 0 0 1px #b4ffff, inset 0 0 1px #b4ffff, 0 0 5px #80ffff;
+			font-family: "Neuropolitical Rg";
+			font-size: 10px;
+			color: #b4ffff;
+		}
+		
+		#StarOS_UserInput{
+			top: 0px;
+		}
+		
+		#StarOS_PassInput{
+			top: 25px;
+		}
+		
+		#StarOS_UserField{
+			top: 3px;
+		}
+		
+		#StarOS_PassField{
+			top: 28px;
+		}

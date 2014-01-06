@@ -1,0 +1,88 @@
+#StarOS_map{
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	margin:0px; 
+	padding:0px;
+}
+#starmap{
+	left: 13px;
+	top: 13px
+}
+#starmap_cornerLT, #starmap_borderT, #starmap_cornerRT, #starmap_borderL, #starmap_borderR,
+#starmap, #starmap_cornerLB, #starmap_borderB, #starmap_cornerRB{
+	position: absolute;
+}
+
+#starmap_cornerLT, #starmap_cornerRT, #starmap_cornerLB, #starmap_cornerRB{
+	background-image: url(../../res/img/starmap/mainBg-corner.png);
+	width: 13px;
+	height: 13px;
+}
+
+#starmap_cornerLT, #starmap_borderT, #starmap_cornerRT{
+	top: 0px;
+}
+
+#starmap_cornerLB, #starmap_borderB, #starmap_cornerRB{
+	bottom: 0px;
+}
+
+#starmap_cornerLT, #starmap_borderL, #starmap_cornerLB{
+	left: 0px;
+}
+
+#starmap_cornerRT, #starmap_borderR, #starmap_cornerRB{
+	right: 0px;
+}
+
+#starmap_borderT, #starmap_borderB{
+	background-image:url(../../res/img/starmap/mainBg-brdH.png);
+	height: 13px;
+	left: 13px;
+}
+
+#starmap_borderL, #starmap_borderR{
+	background-image:url(../../res/img/starmap/mainBg-brdV.png);
+	width: 13px;
+	top: 13px;
+}
+
+#starmap_cornerLT{
+	background-position: 0px 0px;
+}
+
+#starmap_cornerLB{
+	background-position: 0px -13px;
+}
+
+#starmap_cornerRT{
+	background-position: -13px 0px;
+}
+
+#starmap_cornerRB{
+	background-position: -13px -13px;
+}
+
+#starmap_borderT{
+	background-position: 0px 0px;
+}
+
+#starmap_borderB{
+	background-position: 0px -13px;
+}
+
+#starmap_borderL{
+	background-position: 0px 0px;
+}
+
+#starmap_borderR{
+	background-position: -13px 0px;
+}
+
+	#Debugs_stats{
+		position: absolute;
+		top: 0px;
+		right: 0px;
+		z-index: 100;
+	}
