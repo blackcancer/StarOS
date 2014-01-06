@@ -4,7 +4,7 @@
 		Description: this file is used only for setup and update the starmap
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.1-rev00003					Date: 2013-12-28
+		FileVersion: 0.1-rev00004					Date: 2013-12-28
 		By Blackcancer
 
 		website: http://initsysrev.net
@@ -59,8 +59,8 @@
 			$entities[$ent["uid"]] = $ent;
 		}
 
-		file_put_contents("./scripts/js/StarOS/StarOS_json/entities.json", json_encode($entities));
-		file_put_contents("./scripts/js/StarOS/StarOS_json/players.json", json_encode($players));
+		file_put_contents("./scripts/StarOS_json/entities.json", json_encode($entities));
+		file_put_contents("./scripts/StarOS_json/players.json", json_encode($players));
 
 	}
 
@@ -73,13 +73,13 @@
 			$factions[$faction['uid']] = $faction;
 		}
 
-		file_put_contents("./scripts/js/StarOS/StarOS_json/factions.json", json_encode($factions, JSON_FORCE_OBJECT));
+		file_put_contents("./scripts/StarOS_json/factions.json", json_encode($factions, JSON_FORCE_OBJECT));
 
 	}
 
 
 	function createCatalogDatabase($dir, $decoder) {
 		$catalog = $decoder->decodeSMFile($dir . "CATALOG.cat");
-		file_put_contents("./scripts/js/StarOS/StarOS_json/catalog.json", json_encode($catalog, JSON_FORCE_OBJECT));
+		file_put_contents("./scripts/StarOS_json/catalog.json", json_encode($catalog, JSON_FORCE_OBJECT));
 	}
 ?>
