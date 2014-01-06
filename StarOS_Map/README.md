@@ -12,6 +12,10 @@ support: blackcancer@initsysrev.net
 
 
 
+### ==> Requierement <==
+-	Apache
+-	PHP 5+
+
 ### ==> CHANGELOG <==
 5.0-rev00001:
 -	Add worker for loading and parsing entities.json (better FPS, less firefox crash)
