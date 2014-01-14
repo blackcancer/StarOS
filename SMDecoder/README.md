@@ -26,9 +26,10 @@ support: blackcancer@initsysrev.net
 ### ==> DOCUMENTATION <==
 
 Public functions syntax:
-`decodeSMFile(string $file);`
+`decodeSMFile(string $file, bool $formated = false);`
 
 return an array with decoded data. File format accepted are *.cat, *.fac, *.ent, *.smbph, *.smbpl, *.smbpm and *.smd2
+If formated = true then return special formated array (will be used in StarOS Map);
 
 use example:
 ```php
