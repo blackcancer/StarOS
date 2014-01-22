@@ -86,3 +86,75 @@
 		right: 0px;
 		z-index: 100;
 	}
+	
+	#StarOS_backBtn{
+		background:url(../../res/img/starmap/back.png);
+		background-position: 0px 0px;
+		position: absolute;
+		border: none;
+   		outline:none;
+		width: 108px;
+		height: 38px;
+		right: 0px;
+		top: 0px;
+		font-size: 12px;
+		font-family: "Neuropolitical Rg";
+		color: #b4ffff;
+		text-shadow: 0 0 10px #80ffff;
+	}
+	
+	#StarOS_backBtn:hover{	
+		background-position: 0px -38px;
+		text-shadow: 0 0 10px #80ffff, 0 0 10px #80ffff;
+		border: none;
+    	outline:none;
+	}
+	
+	#StarOS_backBtn:click{	
+		background-position: 0px -38px;
+		border: none;
+   		outline:none;
+	}
+	
+	#StarOS_Loading{
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		background: url(../../res/img/starmap/dot.png);
+		width: 150px;
+		height: 40px;
+		margin-top: -20px;
+		margin-left: -75px;
+		text-align: center;
+		padding: 30px;
+		-moz-border-radius: 5px;
+		-webkit-border-radius: 5px;
+		border-radius: 5px;
+		border: 1px #b4ffff solid;
+	}
+	
+	#StarOS_Empty{
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		background: url(../../res/img/starmap/dot.png);
+		width: 150px;
+		height: 40px;
+		margin-top: -20px;
+		margin-left: -75px;
+		text-align: center;
+		padding: 30px;
+		-moz-border-radius: 5px;
+		-webkit-border-radius: 5px;
+		border-radius: 5px;
+		border: 1px #b4ffff solid;
+	}
+	
+	#StarOS_object-coords{
+		position: absolute;
+		left: 50%;
+		bottom: 0px;
+		width: 50px;
+		font-size: 12px;
+		text-align: center;
+	}

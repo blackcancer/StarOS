@@ -3,7 +3,7 @@ StarOS_Map
 
 Description: A starmap for StarMade, this project is subproject of StarOS.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.5-rev00001
+Version: 0.5-rev00011
 Date: 2014-01-6
 
 By Blackcancer  
@@ -17,6 +17,18 @@ support: blackcancer@initsysrev.net
 -	PHP 5+
 
 ### ==> CHANGELOG <==
+5.0-rev00011:
+-	Change entity files generation (improve map loading)
+-	Add Solar systems view
+-	Add system selection from objects in Solar systems view
+-	Add star to system content view
+-	Add loading box
+-	Add Message box for empty system (only empty if system is populated with everything that's not part of your factions)
+-	Update StarOS_Map to be compatible with SMDecoder v0.6
+-	Change entity informations (show or hide certain informations) 
+-	Remove old system selector
+-	Correct camera position on "space" press
+
 5.0-rev00001:
 -	Add worker for loading and parsing entities.json (better FPS, less firefox crash)
 -	Add option StarOS Login (comes with new entites filter)

@@ -4,46 +4,15 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.5-rev00003						Date: 2014-01-03
+		FileVersion: 0.6-rev00001						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
 		support: blackcancer@initsysrev.net
 
-		Header, Logic and Meta are adapted from "blueprint.py" by tambry
-		Meta not yet finish
-
-		This is a list of most used chars in regex.
-		In starmade files, all string start with chr(strlen(string))
-		exemple: fid = strlen('fid') = 3 = chr(3),
-				 chr(3).'fid' is string to search
-
-			chr(0)   = \x00 = NUL
-			chr(1)   = \x01 = SOH
-			chr(2)   = \x02 = STX
-			chr(3)   = \x03 = ETX
-			chr(4)   = \x04 = EOT
-			chr(5)   = \x05 = ENQ
-			chr(6)   = \x06 = ACK
-			chr(7)   = \x07 = BEL
-			chr(8)   = \x08 = BS
-			chr(9)   = \x09 = HT
-			chr(10)  = \x0A = LF
-			chr(11)  = \x0B = VT
-			chr(12)  = \x0C = FF
-			chr(13)  = \x0D = CR
-			chr(14)  = \x0E = SO
-			chr(15)  = \x0F = SI
-			chr(16)  = \x10 = DLE
-			chr(17)  = \x11 = DC1
-			chr(18)  = \x12 = DC2
-			chr(19)  = \x13 = DC3
-			chr(20)  = \x14 = DC4
-			chr(243) = \xF3 = ó
-			chr(248) = \xF8 = ø
-			chr(252) = \xFC = ü
-			chr(253) = \xFD = ý
-			chr(255) = \xFF = ÿ
+		Header, Logic, Meta and Modele are adapted from "blueprint.py" by tambry.
+		Information about files structure can be found on StarMade wiki:
+		http://http://www.starmadewiki.com/wiki/File_format
 	*/
 
 	header('Content-Type: text/html; charset=UTF-8');
@@ -51,195 +20,155 @@
 	define("NULL32", "00000000000000000000000000000000");
 	define("NULL64", "0000000000000000000000000000000000000000000000000000000000000000");
 	define("NULLFLOAT", 0.0);
+	
+	define("TAG_STR_BYTE", 		chr(1));
+	define("TAG_STR_SHORT", 	chr(2));
+	define("TAG_STR_INT", 		chr(3));
+	define("TAG_STR_LONG", 		chr(4));
+	define("TAG_STR_FLOAT", 	chr(5));
+	define("TAG_STR_DOUBLE", 	chr(6));
+	define("TAG_STR_BYTEARRAY", chr(7));
+	define("TAG_STR_STRING", 	chr(8));
+	define("TAG_STR_FLOAT3", 	chr(9));
+	define("TAG_STR_INT3",		chr(10));
+	define("TAG_STR_BYTE3", 	chr(11));
+	define("TAG_STR_LIST",		chr(12));
+	define("TAG_STR_STRUCT",	chr(13));
+	define("TAG_STR_SERIAL",	chr(14));
+	
+	define("TAG_ARRAYDATA",		chr(243));
+	define("TAG_INT3",			chr(246));
+	define("TAG_STRING",		chr(248));
+	define("TAG_DOUBLE",		chr(250));
+	define("TAG_FLOAT",			chr(251));
+	define("TAG_LONG",			chr(252));
+	define("TAG_INT",			chr(253));
+	define("TAG_SHORT",			chr(254));
+	define("TAG_BYTE",			chr(255));
 
 
 
 	class SMDecoder{
-		public function decodeSMFile($file){
+		private $stream;
+		private $type;
+		
+		public function decodeSMFile($file, $formated = false){
 			$ent = array();
-			$data = file_get_contents($file);
+			$this->stream = fopen($file, "rb");
 			$ext = pathinfo($file, PATHINFO_EXTENSION);
 
 			switch($ext){
 				case "cat":
-					$ent = $this->decodeCat($data);
+					$ent = $this->mainDecoder();
+					if($formated){
+						$ent = $this->formatCat($ent);
+					}
 					break;
 
 				case "ent":
-					$type = $this->getType($file);
+					$ent = $this->mainDecoder();
+					if($formated){
+						$this->type = $this->getEntType($file);
+						switch($this->type){
+							case 1:
+								$ent = $this->formatShop($ent);
+								break;
 
-					switch($type){
-						case 6:
-							$ent = $this->decodePlayChar($data, $file, $type);
-							break;
+							case 2:
+								$ent = $this->formatStation($ent);
+								break;
 
-						case 7:
-							$ent = $this->decodePlayStat($data, $file, $type);
-							break;
+							case 3:
+								$ent = $this->formatAst($ent);
+								break;
 
-						default:
-							$ent = $this->decodeEnt($data, $type);
-							break;
+							case 4:
+								$ent = $this->formatPlan($ent);
+								break;
+
+							case 5:
+								$ent = $this->formatShip($ent);
+								break;
+
+							case 6:
+								preg_match('/(?:PLAYERCHARACTER_)(.+)(?:.ent)/', $file, $matches);
+								$pseudo = $matches[1];
+								$ent = $this->formatChar($ent, $pseudo);
+								break;
+
+							case 7:
+								preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
+								$pseudo = $matches[1];
+								$ent = $this->formatStats($ent, $pseudo);
+								break;
+						}
 					}
-
 					break;
+
 				case "fac":
-					$ent = $this->decodeFac($data);
+					$ent = $this->mainDecoder();
+					if($formated){
+						$ent = $this->formatFac($ent);
+					}
 					break;
 
 				case "smbph":
-					$ent = $this->decodeHeader($file);
+					$ent = $this->decodeHeader();
 					break;
 
 				case "smbpl":
-					$ent = $this->decodeLogic($file);
+					$fileSize = filesize($file);
+					$ent = $this->decodeLogic($fileSize);
 					break;
 
 				case "smbpm":
-					$ent = $this->decodeMeta($file);
+					$fileSize = filesize($file);
+					$ent = $this->decodeMeta($fileSize);
 					break;
 
 				case "smd2":
-					echo "starmade mesh file format";
+					$fileSize = filesize($file);
+					$ent = $this->decodeModel($fileSize);
 					break;
 
 				default:
 					die("Unknown file format");
 			}
-
+			fclose($this->stream);
 			return $ent;
 		}
 
 
-		//============================= Catalog Decoder =============================//
+		//============================= Main Decoder =============================//
 
-		private function decodeCat($data){
-			$return = array();
-			if(preg_match_all('/(?:\xF3\xF8)(.+)(?:\x00\x02r0)/Us', $data, $catData)){
-				$shipsArr = explode(chr(243).chr(248), $catData[1][0]);
+		private function mainDecoder(){
+			$data = array();
+			$data['short_a'] = $this->readInt16();
+			$type = $this->readByte();
 
-				for($i = 0; $i < count($shipsArr); $i++){
-					$shipData = explode(chr(248), $shipsArr[$i]);
-					$shipName = $shipData[0];
-					$shipCreator = explode(chr(253), $shipData[1]);
-					$shipDesc = explode(chr(252), $shipData[2]);
-
-					$return[$i]['ship'] = trim($shipName, "\x00..\x1F");
-					$return[$i]['creator'] = trim($shipCreator[0], "\x00..\x1F");
-					$return[$i]['desc'] = substr($shipDesc[0], 2);
-
-					$regex = $return[$i]['ship'].'\xF3\xF8\x00\x0B'.$return[$i]['creator'].'\xFF';
-					preg_match('/(?:'.$regex.')(.+)([\x00-\x0F]+?)/Us', $data, $rateData);
-					if(count($rateData) > 0){
-						$rate = $rateData[1];
-						$return[$i]['rate'] = bindec(sprintf("%80b", ord($rate[0])));
-					}
-					else{
-						$return[$i]['rate'] = 0;
-					}
+			while($type != ''){
+				
+				$resp = $this->parseTag($type);
+				
+				if(isset($resp['name'])){
+					$data[$resp['name']] = $resp['data'];
 				}
+				else{
+					array_push($data, $resp);
+				}
+
+				$type = $this->readByte();
 			}
-			return $return;
+
+			return $data;
 		}
 
 
 		//============================= Entity Decoder  =============================//
 
-		private function decodeEnt($data, $type){
-			$return = array();
+		private function getEntType($file){
 
-			$transform = $this->getTransform($data);
-			$creation = $this->getCreation($data);
-
-			$return['uid'] 		  = $this->getUid($data);
-			$return['type'] 	  = $type;
-			$return['name'] 	  = $this->getName($data);
-			$return['creator'] 	  = $creation[0];
-			$return['lastMod'] 	  = $creation[1];
-			$return['fid'] 		  = $this->getFid($data);
-			$return['mass'] 	  = $this->getMass($data);
-			if($type == 2 || $type == 4 || $type == 5){
-				$return['pw'] = (double)$this->getPw($data);
-				$return['sh'] = (double)$this->getSh($data);
-			} else {
-				$return['pw'] = (double)0;
-				$return['sh'] = (double)0;
-			}
-			$return['AIconfig']	  = $this->getAI($data);
-			//$return['contenairs'] = $this->getContainers($data);
-			$return['sPos'] = $this->getSPos($data);
-			$return['localPos']   = $transform['o'];
-			$return['transformX'] = $transform['x'];
-			$return['transformY'] = $transform['y'];
-			$return['transformZ'] = $transform['z'];
-			$return['dim'] 		  = $this->getDim($data);
-			$return['genId'] 	  = $creation[2];
-
-			return $return;
-		}
-
-		private function decodePlayChar($data, $file, $type){
-			preg_match('/(?:PLAYERCHARACTER_)(.+)(?:.ent)/', $file, $matches);
-			$transform = $this->getTransform($data);
-			$return = array();
-
-			$return['id'] = $this->getPlayCharId($data);
-			$return['type'] = $type;
-			$return['name'] = $matches[1];
-			$return['speed'] = $this->getSpeed($data);
-			$return['mass'] = $this->getMass($data);
-			$return['stepHeight'] = $this->getStepHeight($data);
-			$return['sPos'] = $this->getSPos($data);
-			$return['localPos'] = $transform['o'];
-			$return['transformX'] = $transform['x'];
-			$return['transformY'] = $transform['y'];
-			$return['transformZ'] = $transform['z'];
-
-			return $return;
-		}
-
-		private function decodePlayStat($data, $file, $type){
-			$return = array();
-
-			preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
-			$return['name'] = $matches[1];
-			$return['credits'] = $this->getCredits($data);
-			//$return['inventory'] = $this->getPlayInv($data);
-			$return['spawn'] = $this->getSpawn($data);
-			$return['sector'] = $this->getSector($data);
-			$return['lspawn'] = $this->getLspawn($data);
-			$return['lsector'] = $this->getLsector($data);
-			$return['fid'] = $this->getPFac($data);
-
-			return $return;
-		}
-
-			//====================== Sub functions PUBLIC =======================//
-		public function getName($data){
-			preg_match('/(?:\x00\x08realname)(.+)(?:\x0d\x00)/Us', $data, $matches);
-			$return = substr($matches[1],2);
-
-			return $return;
-		}
-
-		public function getSPos($data){
-			preg_match('/(?:\x00\x04sPos)(.+)(?:\x03\x00\x03fid)/Us', $data, $matches);
-			$dump = str_split($matches[1],4);
-
-			$return = array(
-				'x' => binInt32($dump[0]),
-				'y' => binInt32($dump[1]),
-				'z' => binInt32($dump[2])
-			);
-
-			return $return;
-		}
-
-		public function getType($file){
-
-			if(strpos($file, 'FLOATING_ITEMS_ARCHIVE') !== false){
-				return 0;
-			}else if(strpos($file, 'SHOP') !== false){
+			if(strpos($file, 'SHOP') !== false){
 				return 1;
 			}else if(strpos($file, 'SPACESTATION') !== false){
 				return 2;
@@ -253,383 +182,15 @@
 				return 6;
 			}else if(strpos($file, 'PLAYERSTATE') !== false){
 				return 7;
-			}else{
-				return -1;
-			}
-		}
-
-		public function getUid($data){
-			preg_match('/(?:ENTITY_)(.+)(?:)/', $data, $return);
-			return $return[0]; 
-		}
-
-			//====================== Sub functions PRIVATE ======================//
-		private function getAI($data){
-			if(preg_match('/\x00\x04noAI\x00\x0A/Us', $data)) return "noAI";
-			$str = "\x08\x00\x05state\x00";
-			preg_match('/(?:\x00\x06AIM_AT\x08\x00\x05state\x00)(.+)(?:\x00\x0D)/Us', $data, $matches1);
-			preg_match('/(?:\x00\x04TYPE\x08\x00\x05state\x00)(.+)(?:\x00\x0D)/Us', $data, $matches2);
-			preg_match('/(?:\x00\x06ACTIVE\x08\x00\x05state\x00)(.+)(?:\x00\x00)/Us', $data, $matches3);
-			$dump1 = substr($matches1[1], 1);
-			$dump2 = substr($matches2[1], 1);
-			$dump3 = substr($matches3[1], 1);
-			
-			$return = array(
-				'AIM_AT' => $dump1,
-				'TYPE' => $dump2,
-				'ACTIVE' => $dump3
-			);
-			
-			return $return;
-		}
-
-		private function getCreation($data){
-			preg_match('/(?:\x00\x0AcreatoreId)(.+)(?:)/', $data, $matches);
-
-			$arr = explode(chr(248),$matches[1]);
-			$creator = substr($arr[1],1);
-			$last_mod = substr($arr[2],1);
-			$last_mod = explode(chr(252), $last_mod);
-			$gen_id = substr($arr[0], 3);
-			$gen_id = bindec(sprintf("%08b", ord($gen_id)));
-			$return = array();
-			$return[] = $creator;
-			$return[] = $last_mod[0];
-			$return[] = $gen_id;
-
-			if($return[0] == chr(0)){
-				$return[0] = "<system>";
-			}
-			if($return[1] == chr(0)){
-				$return[1] = "";
 			}
 
-			return $return;
-		}
-
-		private function getCredits($data){
-			preg_match('/(?:\x00\x07credits)(.+)(?:\x09\x00\x05spawn)/', $data, $matches);
-			$return = $matches[1];
-			
-			return binInt32($return);
-		}
-
-		private function getDim($data){
-			preg_match('/(?:\x00\x06maxPos)(.+)(?:\x0A\x00\x06minPos)/Us', $data, $matches1);
-			preg_match('/(?:\x00\x06minPos)(.+)(?:\xF3\xF8\x00\x04NONE)/', $data, $matches2);
-			$dump1 = str_split($matches1[1],4);
-			$dump2 = str_split($matches2[1],4);
-			
-			$maxPos = array(
-				'x' => binInt32($dump1[0]),
-				'y' => binInt32($dump1[1]),
-				'z' => binInt32($dump1[2])
-			);
-			
-			$minPos = array(
-				'x' => binInt32($dump2[0]),
-				'y' => binInt32($dump2[1]),
-				'z' => binInt32($dump2[2])
-			);
-			
-			$return = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-			
-			return $return;
-		}
-
-		private function getFid($data){
-			preg_match('/(?:\x00\x03fid)(.+)(?:\x08\x00\x03own)/Us', $data, $matches);
-			$return = $matches[1];
-
-			return binInt32($return);
-		}
-
-		private function getLsector($data){
-			preg_match('/(?:\x00\x07lsector)(.+)(?:\x0D\x00\x07)/', $data, $matches);
-			$dump = str_split($matches[1], 4);
-
-			$return = array(
-				'x' => binInt32($dump[0]),
-				'y' => binInt32($dump[1]),
-				'z' => binInt32($dump[2])
-			);
-
-			return $return;
-		}
-
-		private function getLspawn($data){
-			preg_match('/(?:\x00\x06lspawn)(.+)(?:\x0A\x00\x07)/', $data, $matches);
-			$dump = str_split($matches[1], 4);
-
-			$return = array(
-				'x' => binFloat($dump[0]),
-				'y' => binFloat($dump[1]),
-				'z' => binFloat($dump[2])
-			);
-
-			return $return;
-		}
-
-		private function getMass($data){
-			preg_match('/(?:\x00\x04mass)(.+)(?:\x0C\x00\x09transform)/Us', $data, $matches);
-			$return = $matches[1];
-
-			return round(binFloat($return), 1);
-		}
-
-		private function getPFac($data){
-			preg_match('/(?:\x00\x07pFac-v0\xFD)(.+)(?:\x00\xFC)/', $data, $matches);
-			return binInt32($matches[1]);
-		}
-
-		private function getPlayCharId($data){
-			preg_match('/(?:\x03\x00\x02id)(.+)(?:\x05\x00\x05)/Us', $data, $matches);
-			return binInt32($matches[1]);
-		}
-
-		private function getPw($data){
-			preg_match('/(?:\x00\x02pw)(.+)(?:\x06\x00\x02sh)/Us', $data, $matches);
-			$return = $matches[1];
-
-			return round(binDouble($return),1);
-		}
-
-		private function getSector($data){
-			preg_match('/(?:\x00\x06sector)(.+)(?:\x09\x00\x6lspawn)/', $data, $matches);
-			$dump = str_split($matches[1], 4);
-
-			$return = array(
-				'x' => binInt32($dump[0]),
-				'y' => binInt32($dump[1]),
-				'z' => binInt32($dump[2])
-			);
-
-			return $return;
-		}
-
-		private function getSh($data){
-			preg_match('/(?:\x00\x02sh)(.+)(?:ex)/Us', $data, $matches);
-			$return = substr($matches[1],0,-3);
-
-			return round(binDouble($return),1);
-		}
-
-		private function getSpawn($data){
-			preg_match('/(?:\x00\x05spawn)(.+)(?:\x0D\x00\x09)/', $data, $matches);
-			$dump = str_split($matches[1], 4);
-
-			$return = array(
-				'x' => binFloat($dump[0]),
-				'y' => binFloat($dump[1]),
-				'z' => binFloat($dump[2])
-			);
-
-			return $return;
-		}
-
-		private function getSpeed($data){
-			preg_match('/(?:\x00\x05speed)(.+)(?:\x05\x00\x0A)/Us', $data, $matches);
-			$return = $matches[1];
-
-			return binFloat($return);
-		}
-
-		private function getStepHeight($data){
-			preg_match('/(?:\x05\x00\x0AstepHeight)(.+)(?:\x0D\x00\x0D)/Us', $data, $matches);
-			return binInt32($matches[1]);
-		}
-
-		private function getTransform($data){
-			preg_match('/(?:\x00\x09transform\x05\x00\x00\x00\x10)(.+)(?:[\x02]|[\x0D]\x00)/s', $data, $matches);
-			$dump = str_split($matches[1],4);
-
-			$x = array(
-				'x' => binFloat($dump[0]),
-				'y' => binFloat($dump[1]),
-				'z' => binFloat($dump[2])
-			);
-
-			$y = array(
-				'x' => binFloat($dump[4]),
-				'y' => binFloat($dump[5]),
-				'z' => binFloat($dump[6])
-			);
-
-			$z = array(
-				'x' => binFloat($dump[8]),
-				'y' => binFloat($dump[9]),
-				'z' => binFloat($dump[10])
-			);
-
-			$o = array(
-				'x' => binFloat($dump[12]),
-				'y' => binFloat($dump[13]),
-				'z' => binFloat($dump[14])
-			);
-
-			$return = array(
-				'x' => $x,
-				'y' => $y,
-				'z' => $z,
-				'o' => $o,
-				'float' => binFloat($dump[15])
-			);
-
-			return $return;
-		}
-
-			//==================== EXPERIMENTAL Sub functions ====================//
-		private function getContainers($data){
-			if(preg_match('/\x00\x13controllerStructure\x00\x0D/Us', $data)){
-				return "noInventory";
-			}
-
-			preg_match('/(?:\x00\x09inventory)(.+)(?:\x00\x08shipMan0)/Us', $data, $matches);
-			$str = chr(0).chr(9)."inventory".chr(3);
-			$inventory = explode($str , $matches[1]);
-			$return = array();
-			for($i = 0; $i < count($inventory); $i++){
-				$arr = explode("\x0D\x00",$inventory[$i]);
-				$index1 = explode("index", $arr[0]);
-				$index1 = str_split($index1[1], 4);
-				$pos = array(
-					'x' => binInt32($index1[0]),
-					'y' => binInt32($index1[1]),
-					'z' => binInt32($index1[2])
-				);
-				$arr[1] = substr($arr[1], 19);
-				$slotsSplit = explode("\x0C\x00\x05types\x02\x00\x00", $arr[1]);
-				$slotsList = str_split($slotsSplit[0], 4);
-				$slotsUsed = count($slotsList) - 1;
-				$slotsArr = array();
-				
-				$blocksList = str_split($slotsSplit[1], 2);
-				$arr[2] = substr($arr[2],7);
-				$valueList = explode(chr(253), $arr[2]);
-				$valueList = array_slice($valueList, 1);
-				if(count($valueList)){
-					$valueList[$slotsUsed -1] = substr($valueList[$slotsUsed -1], 0, 4);
-				}
-				for($j = 0; $j < $slotsUsed; $j++){
-					$blockId = $blocksList[$j];
-					$slotsArr[binInt32($slotsList[$j])] = array (
-						'block' => binInt16($blockId),
-						'qty' => binInt32($valueList[$j])
-					);
-					var_dump($valueList[$j]);
-				}
-				$return[$i] = array(
-					'pos' => $pos,
-					'slots' => $slotsArr
-				);
-			}
-
-			return $return;
-		}
-
-		private function getPlayInv($data){
-			preg_match('/(?:\x00\x05slots\x03)(.+)(?:\x0C\x00\x05types)/Us', $data, $matches1);
-			preg_match('/(?:\x00\x05types\x02\x00\x00)(.+)(?:\x0D\x00\x06values)/Us', $data, $matches2);
-			preg_match('/(?:\x00\x06values)(.+)(?:\x0A\x00\x06sector)/Us', $data, $matches3);
-			$slots = str_split($matches1[1], 4);
-			$blocks = str_split($matches2[1], 2);
-			$qtys = str_split($matches3[1], 5);
-			$return = array();
-
-			for($i = 0; $i < count($qtys); $i++){
-				$qtys[$i] = substr($qtys[$i], 1);
-			}
-
-			for($i = 0; $i < count($slots) - 1; $i++){
-				$return[binInt32($slots[$i])] = array(
-					'block' => binInt16($blocks[$i]),
-					'qty' => binInt32($qtys[$i])
-				);
-			}
-			
-			return $return;
-		}
-
-		private function getWeapons($data){
-		}
-
-
-		//============================= Faction Decoder =============================//
-
-		private function decodeFac($data){
-			$faction = array();
-
-			//Get Faction ID
-			preg_match_all('/(?:\x00\x02id)(.+)(?:\x01\x00\x02fn)/Us', $data, $fdata);
-			$fNumber = count($fdata[1]);
-			for($i = 0; $i < $fNumber; $i++){
-				$faction[$i]['id'] = binInt32($fdata[1][$i]);
-			}
-
-			//Get Faction UID, Name and Description
-			preg_match_all('/(?:f0\xF8\x00)(.+)(?:\xFC\x00)/Us', $data, $fdata);
-			for($i = 0; $i < $fNumber; $i++){
-				$arr = explode (chr(248) ,$fdata[1][$i]);
-				$faction[$i]['uid'] = substr($arr[0], 1);
-				$faction[$i]['name'] = substr($arr[1], 2);
-				$faction[$i]['description'] = substr($arr[2], 2);
-			}
-
-			//Get Faction members and grade
-			preg_match_all('/(?:mem\xF3\xF8)(.+)(?:\x0D\x00\x01)/Us', $data, $fdata);
-			for($i = 0; $i < $fNumber; $i++){
-				if(isset($fdata[1][$i])){
-					$arr = explode(chr(243). chr(248), $fdata[1][$i]);
-					for($x = 0; $x < count($arr); $x++){
-						preg_match_all('/(?:\xFF)(.+)(?:\x00)/US', $arr[$x], $rank);
-						$rank = (bindec(sprintf('%08b', ord($rank[1][0]))));
-						$arr[$x] = substr(substr($arr[$x], 2), 0, -3);
-						if($x == count($arr) -1){
-							$arr[$x] = substr($arr[$x], 0, -3);
-						}
-						$fArr[$x]['name'] = $arr[$x];
-						$fArr[$x]['rank'] = $rank;
-					}
-					$faction[$i]['member'] = $fArr;
-				} else {
-					$faction[$i]['member'] = array();
-				}
-			}
-
-			//Get Faction ranks
-			preg_match_all('/(?:\x010\xFD)(.+)(?:\x00\x04home)/Us', $data, $fdata);
-			for($i = 0; $i < $fNumber; $i++){
-				preg_match_all('/(?:\xF3\xF8)(.+)(?:)/', $fdata[1][$i], $fdata2);
-				$str = substr($fdata2[1][0], 2);
-				$str = str_replace(chr(7), chr(15), $str);
-				$arr = explode(chr(0).chr(15), $str);
-				for($x = 0; $x < count($arr); $x++){
-					$arr[$x] = substr($arr[$x], 0, -1); //trim function don't remove last NUL char on the 3 first iteration
-					$arr[$x] = trim($arr[$x], "\x00..\x1F");
-				}
-				$faction[$i]['ranks'] = $arr;
-			}
-
-			//Get Faction home
-			preg_match_all('/(?:home\x00)(.+)(?:\x08)/Us', $data, $fdata);
-			for($i = 0; $i < $fNumber; $i++){
-				if(isset($fdata[1][$i]) && $fdata[1][$i] != chr(0)){
-					$faction[$i]['home'] = substr($fdata[1][$i], 1);
-				} else {
-					$faction[$i]['home'] = '';
-				}
-			}
-
-			return $faction;
+			return -1;
 		}
 
 
 		//============================= Header Decoder  =============================//
 
-		private function decodeHeader($file){
+		private function decodeHeader(){
 			/*
 				start	type
 					0	int				unknown int
@@ -645,29 +206,26 @@
 			*/
 			$return = array();
 
-			$stream = fopen($file, "rb");
-			$return['int_a'] = readInt32($stream);
-			$return['int_b'] = readInt32($stream);
-			$return['bounds_a'] = array(readFloat($stream), readFloat($stream), readFloat($stream));
-			$return['bounds_b'] = array(readFloat($stream), readFloat($stream), readFloat($stream));
-			$blockTblLen = readInt32($stream);
+			$return['int_a'] = $this->readInt32();
+			$return['int_b'] = $this->readInt32();
+			$return['bounds_a'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+			$return['bounds_b'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+			$blockTblLen = $this->readInt32();
 			$return['blockTableLen'] = $blockTblLen;
 			$return['blocks'] = array();
 
 			for($i = 0; $i < $blockTblLen; $i++){
-				$index = readInt16($stream);
-				$qty = readInt32($stream);
+				$index = $this->readInt16();
+				$qty = $this->readInt32();
 				$return['blocks'][$index] = $qty;
 			}
-
-			fclose($stream);
 			return $return;
 		}
 
 
 		//============================= Logic Decoder   =============================//
 
-		private function decodeLogic($file){
+		private function decodeLogic($fileSize){
 			/*  
 			start   type
 				0	int					unknown int
@@ -706,42 +264,39 @@
 					numBlocks: 10
 					blockArray: (10 entries containing 3 shorts each, the position of each salvage cannon)
 			*/
-			
-			$stream = fopen($file, "rb");
-			$fileSize = filesize($file);
+
 			$return = array();
 
-			while (ftell($stream) < $fileSize){
-				$return['int_a'] = readInt32($stream);
-				$numControls = readInt32($stream);
+			while (ftell($this->stream) < $fileSize){
+				$return['int_a'] = $this->readInt32();
+				$numControls = $this->readInt32();
 				$return['controllers'] = array();
 
 				for($i = 0; $i < $numControls; $i++){
 					$dict = array();
-					$dict['pos'] = array(readInt16($stream), readInt16($stream), readInt16($stream));
-					$numGroups = readInt32($stream);
+					$dict['pos'] = array($this->readInt16(), $this->readInt16(), $this->readInt16());
+					$numGroups = $this->readInt32();
 					$dict['q'] = array();
 
 					for($j = 0; $j < $numGroups; $j++){
-						$tag = readInt16($stream);
-						$numBlocks = readInt32($stream);
+						$tag = $this->readInt16();
+						$numBlocks = $this->readInt32();
 						$dict['q'][$tag] = array();
 
 						for($x = 0; $x < $numBlocks; $x++){
-							array_push($dict['q'][$tag], array(readInt16($stream), readInt16($stream), readInt16($stream)));
+							array_push($dict['q'][$tag], array($this->readInt16(), $this->readInt16(), $this->readInt16()));
 						}
 					}
 					array_push($return['controllers'], $dict);
 				}
 			}
-			fclose($stream);
 			return $return;
 		}
 
 
 		//============================= Meta Decoder    =============================//
 
-		private function decodeMeta($file){
+		private function decodeMeta($fileSize){
 			/*
 			start     type
 				0       int				unknown int
@@ -773,24 +328,21 @@
 				0xD     Start of new tag struct
 				0xE     Serialized object (not yet implemented here)
 			*/
-			
+
 			$return = array();
-			
-			$stream = fopen($file, "rb");
-			$fileSize = filesize($file);
-			$return['int_a'] = readInt32($stream);
-			$return['byte_a'] = bindec(sprintf("%08b", ord(fread($stream, 1))));
+
+			$return['int_a'] = $this->readInt32();
+			$return['byte_a'] = $this->readInt8();
 
 			if($return['byte_a'] == 3){
-				$numDocked = readInt32($stream);
+				$numDocked = $this->readInt32();
 				$return['docked'] = array();
 
 				for($i = 0; $i < $numDocked; $i++){
-					$nLenght = bindec(fread($stream, 1));
-					$name = fread($stream, $nLenght);
-					$q = array(readInt32($stream), readInt32($stream), readInt32($stream));
-					$a = array(bin2Float($stream), bin2Float($stream), bin2Float($stream));
-					$docking = readInt16($stream);
+					$name = $this->readString();
+					$q = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					$a = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					$docking = $this->readInt16();
 
 					$arr = array(
 						'name' => $name,
@@ -800,291 +352,1511 @@
 					);
 					array_push($return['docked'], $arr);
 				}
-				
-				$return['byte_b'] = bindec(sprintf("%08b", ord(fread($stream, 1))));
-				fread($stream, 4);
-				$index1 = readStr($stream);
-				$return[$index1] = array();
-				fread($stream, 2);
-				$index2 = readStr($stream);
-				$return[$index1][$index2] = array();
 
-				if(fread($stream, 1) != "\x00"){
+				$return['byte_b'] = $this->readByte();
+				$return['gzip'] = $this->readInt16();
+
+				$type = $this->readByte();
+				while($type != ''){
+
+					$resp = $this->parseTag($type);
+
+					if(isset($resp['name'])){
+						$return[$resp['name']] = $resp['data'];
+					}
+					else{
+						array_push($return, $resp);
+					}
+
+					$type = $this->readByte();
 				}
-
-				fread($stream, 2);
-				$index1 = readStr($stream);
-				$return[$index1] = array();
 			}
 
-			fclose($stream);
 			return $return;
 		}
 
 
 		//============================= Modele Decoder  =============================//
 
-		private function decodeModel($file){
-		}
-	}
+		private function decodeModel($fileSize){
 
-	function binDouble($binStr){
-		$bytes = null;
+			/*
+				Read a starmade data file (.smd2)
+				
+				This function will probably be really inefficient for large ships!
+				
+				 start     type
+					0         int                       unknown int
+					4         chunkIndex[16][16][16]      chunkIndex struct (see below) arranged in a 16x16x16 array
+					32772     long[16][16][16]          chunk timestamp information arranged in a 16x16x16 array
+					65540     chunkData[]               5120 byte chunks
+			
+					Note that there may exist chunk timestamps and chunks that are not referenced in the chunkIndex table and seemingly serve no purpose.
+					
+					chunkIndex is an 8 byte struct
+						int     chunkId     Index into the chunkData[] array.  If no chunk exists for this point in the array, chunkId = -1
+						int     chunklen    The total chunk size in bytes (excluding the zero padding).  Equal to the chunk's "inlen" field plus 25 (the chunk header size)
+					
+					chunkData is a 5120 byte structure
+						long    timestamp   Unix timestamp in milliseconds
+						int[3]  q           Relative chunk position
+						int     type        Chunk type (?) usually 0x1
+						int     inlen       Compressed data length
+						byte    data[inlen] ZLIB-compressed data of rawChunkData[16][16][16]
+						byte    padding[]   Zero padded to 5120 byte boundary
+					
+					rawChunkData is a 3 byte bitfield
+						Bits
+						23-21   3 lower bits of orientation
+						20      isActive or MSB of the orientation
+						19-11   hitpoints
+						10-0    blockID
+			*/
 
-		if(strlen($binStr) == 8){
+			$data = array();
 
-			for($i = 0; $i < 8; $i++){
-				$bytes .= sprintf("%08b", ord($binStr[$i]));
+			$data['filelen'] = $fileSize;
+			$numChunks = ($fileSize - 4 - 32768 - 32768) / 5120;
+
+			$data['int_a'] = $this->readInt32();
+			$data['chunkIndex'] = array();
+			$data['chunkTimestamps'] = array();
+			$data['chunks'] = array();
+
+			//First 32KB area
+			for($i = 0; $i < 4096; $i++){
+				$chunkId = $this->readInt32();
+				$chunkLen = $this->readInt32();
+
+				if($chunkId != -1){
+					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
+					$pos = array(16 * ($pos[0] - 8), 16 * ($pos[1] - 8), 16 * ($pos[2] - 8));
+					$posStr = $pos[0].','.$pos[1].','.$pos[2];
+					
+					$data['chunkIndex'][$posStr] = array(
+						'id' => $chunkId,
+						'len' => $chunkLen
+					);
+				}
 			}
 
-			if($bytes === NULL64){
-				return NULLFLOAT;
+			//Second 32KB area
+			for($i = 0; $i < 4096; $i++){
+				$timestamp = $this->readInt64();
+
+				if($timestamp > 0){
+					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
+					$pos = array(16 * ($pos[0] - 8), 16 * ($pos[1] - 8), 16 * ($pos[2] - 8));
+					$posStr = $pos[0].','.$pos[1].','.$pos[2];
+
+					$data['chunkTimestamps'][$posStr] = $timestamp;
+				}
+			}
+
+			for($chunk = 0; $chunk < $numChunks; $chunk++){
+				$chunkDict = array();
+				$chunkDict['blocks'] = array();
+				$chunkDict['timestamp'] = $this->readInt64();
+				$chunkDict['pos'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+				$chunkDict['type'] = $this->readByte();
+				$inLen = $this->readInt32();
+
+				$inData = $this->readBytes(5120-25);
+				$outData = gzuncompress($inData);
+
+				for($block = 0; $block < 16*16*16; $block++){
+					$idx = $block * 3;
+					$str = chr(0);
+					for($i = 0; $i < 3; $i++){
+						$str .= $outData[$idx + $i];
+					}
+					$blockData = $this->binToInt32($str);
+					$blockId = $this->bits($blockData, 0, 11);
+
+					if($blockId != 0){
+						$pos = array($block % 16, ($block / 16) % 16, ($block / 256) % 16);
+						$posStr = $pos[0].','.$pos[1].','.$pos[2];
+
+						$chunkDict['blocks'][$posStr] = array(
+							'id' => $blockId,
+							'hp' => $this->bits($blockData, 11, 9),
+							'active' => $this->bits($blockData, 20, 1),
+							'orient' => $this->bits($blockData, 21, 3)
+						);
+					}
+
+				}
+
+				array_push($data['chunks'], $chunkDict);
+			}
+
+			return $data;			
+		}
+
+
+		//===========================================================================//
+
+		public function checkServ($host, $port){
+
+			$packet = pack("N", 9).pack("c", 42).pack("n", -1).pack("c", 1).pack("c", 111).pack("N", 0);
+			$this->stream = fsockopen($host, $port, $errno, $errstr, 1);
+
+			if($this->stream && $errno ==0){
+				fputs($this->stream, $packet);
+				$this->readBytes(4); //buffer size
+
+				$timestamp = $this->readInt64();
+				
+				$this->readBytes(8); //unknown bytes, probably type long
+				
+				$this->readBytes(1); //tag 0x07 type short
+				$this->readInt16(); //unknow short
+
+				$this->readBytes(1); //tag 0x03 type float
+				$version = round($this->readFloat(), 5);
+				
+				$this->readBytes(1); //tag 0x04 type string
+				$name = $this->readString();
+
+				$this->readBytes(1); //tag 0x04 type string
+				$desc = $this->readString();
+
+				$this->readBytes(1); //tag 0x02 type long
+				$startTime = $this->readInt64();
+
+				$this->readBytes(1); //tag 0x01 type int32
+				$connected = $this->readInt32();
+
+				$this->readBytes(1); //tag 0x01 type int32
+				$maxPlayer = $this->readInt32();
+
+				$return = array(
+					'online' => true,
+					'timestamp' => $timestamp,
+					'version' => $version,
+					'name' => $name,
+					'description' => $desc,
+					'startTime' => $startTime,
+					'connected' => $connected,
+					'maxPlayer' => $maxPlayer
+				);
 			}
 			else{
-				$hex = base_convert($bytes, 2, 16);
-				$hex = chunk_split($hex, 2, " ");
-				$hex = substr($hex, 0, -1);
-				$hex = hexReverse($hex);
-				$hex = hexify($hex);
-				if($hex === false){
-					die("Error: Invalide hex for double");
-				}
-				$dec = unpack("d", $hex);
+				$return = array(
+					'online' => false,
+					'timestamp' => round(microtime(1) * 1000),
+					'version' => 'unknown',
+					'name' => 'unknown',
+					'description' => 'unknown',
+					'startTime' => 0,
+					'connected' => 'unknown',
+					'maxPlayer' => 'unknown'
+				);
 			}
+
+			return $return;
 		}
-		else{
-			die("Error: double type have 8 bytes.\n");
+
+
+		//================================ Tag Parser ===============================//
+
+		private function parseTag($type){
+			$data = null;
+			$listName = array(
+				"AIElement",
+				"wepContr",
+				"PointDist",
+				"inventory",
+				"f0",
+				"0FN",
+				"FN",
+				"fp-v0",
+				"0"
+			);
+
+			switch($type){
+				case TAG_STR_BYTE:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readInt8();
+					break;
+
+				case TAG_STR_SHORT:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readInt16();
+					break;
+
+				case TAG_STR_INT:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readInt32();
+					break;
+
+				case TAG_STR_LONG:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readInt64();
+					break;
+
+				case TAG_STR_FLOAT:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readFloat();
+					break;
+
+				case TAG_STR_DOUBLE:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readDouble();
+					break;
+
+				case TAG_STR_BYTEARRAY:
+					$data['name'] = $this->readString();
+					$data['data'] = array();
+					$len = $this->readInt32();
+
+					for($i = 0; $i < $len; $i++){
+						array_push($data['data'], $this->readInt8());
+					}
+
+					break;
+
+				case TAG_STR_STRING:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readString();
+					break;
+
+				case TAG_STR_FLOAT3:
+					$data['name'] = $this->readString();
+					$data['data'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					break;
+
+				case TAG_STR_INT3:
+					$data['name'] = $this->readString();
+					$data['data'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					break;
+
+				case TAG_STR_BYTE3:
+					$data['name'] = $this->readString();
+					$data['data'] = array($this->readInt8(), $this->readInt8(), $this->readInt8());
+					break;
+
+				case TAG_STR_LIST:
+					$data['name'] = $this->readString();
+					$data['data'] = array();
+					$next = $this->readByte();
+					$len = $this->readInt32();
+					
+					for($i = 0; $i < $len; $i++){
+						array_push($data['data'], $this->parseList($next));
+					}
+
+					break;
+
+				case TAG_STR_STRUCT:
+					$data['name'] = $this->readString();
+					$data['data'] = array();
+					$next = $this->readByte();
+					$i = 0;
+					while($next != chr(0)){
+
+						$resp = $this->parseTag($next);
+
+						if(is_array($resp) && isset($resp['name'])){
+
+							if(in_array($resp['name'], $listName)){
+								$offset = $resp['name'] . $i;
+								$data['data'][$offset] = $resp['data'];
+								$i++;
+							}
+							else{
+								$data['data'][$resp['name']] = $resp['data'];
+								$i = 0;
+							}
+
+						}
+						else{
+							array_push($data['data'], $resp);
+						}
+
+						$next = $this->readByte();
+					}
+
+					break;
+
+				case TAG_STR_SERIAL:
+					$data['name'] = $this->readString();
+					$data['data'] = '';
+					$nextBytes = null;
+
+					while($nextBytes != chr(8).chr(0).chr(8).'realname'){
+						$data['data'] .= $this->readByte();
+						$nextBytes = $this->readNextBytes(11);
+					}
+
+					break;
+
+				case TAG_ARRAYDATA:
+					$data = array();
+					$next = $this->readByte();
+					$i = 0;
+					while($next != chr(0)){
+
+						$resp = $this->parseTag($next);
+
+						if(is_array($resp) && isset($resp['name'])){
+
+							if(in_array($resp['name'], $listName)){
+								$offset = $resp['name'] . $i;
+								$data[$offset] = $resp['data'];
+								$i++;
+							}
+							else{
+								$data[$resp['name']] = $resp['data'];
+								$i = 0;
+							}
+
+						}
+						else{
+							array_push($data, $resp);
+						}
+
+						$next = $this->readByte();
+
+					}
+
+					break;
+
+				case TAG_INT3:
+					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					break;
+
+				case TAG_STRING:
+					$data = $this->readString();
+					break;
+
+				case TAG_DOUBLE:
+					$data = $this->readDouble();
+					break;
+
+				case TAG_FLOAT:
+					$data = $this->readFloat();
+					break;
+
+
+				case TAG_LONG:
+					$data = $this->readInt64();
+					break;
+
+				case TAG_INT:
+					$data = $this->readInt32();
+					break;
+
+				case TAG_SHORT:
+					$data = $this->readInt16();
+					break;
+
+				case TAG_BYTE:
+					$data = $this->readInt8();
+					break;
+
+				default:
+					echo 'Warning: Unrecognized tag type '. dechex(ord($type));
+					break;
+			}
+
+			return $data;
 		}
 
-		return $dec[1];
-	}
+		private function parseList($type){
+			$data = null;
+			
+			switch($type){
+				case TAG_STR_BYTE:
+					$data = $this->readInt8();
+					break;
 
-	function binFloat($binStr){
-		$bytes = null;
+				case TAG_STR_SHORT:
+					$data = $this->readInt16();
+					break;
 
-		if(strlen($binStr) == 4){
+				case TAG_STR_INT:
+					$data = $this->readInt32();
+					break;
 
-			for($i = 0; $i < 4; $i++){
+				case TAG_STR_LONG:
+					$data = $this->readInt64();
+					break;
+
+				case TAG_STR_FLOAT:
+					$data = $this->readFloat();
+					break;
+
+				case TAG_STR_DOUBLE:
+					$data = $this->readDouble();
+					break;
+
+				case TAG_STR_BYTEARRAY:
+					$data = array();
+					$len = $this->readInt32();
+					
+					for($i = 0; $i < $len; $i++){
+						array_push($data, $this->readInt8());
+					}
+					
+					break;
+
+				case TAG_STR_STRING:
+					$data = $this->readString();
+					break;
+
+				case TAG_STR_FLOAT3:
+					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					break;
+
+				case TAG_STR_INT3:
+					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					break;
+
+				case TAG_STR_BYTE3:
+					$data = array($this->readInt8(), $this->readInt8(), $this->readInt8());
+					break;
+
+				default:
+					echo 'Warning: Unrecognized tag type '. dechex(ord($type));
+					break;
+			}
+
+			return $data;
+		}
+
+
+		//============================= Object Formater =============================//
+
+		private function formatCat($ent){
+			$data = array();
+			$ships = $ent['cv0']['pv0'];
+			$rateList = $ent['cv0']['r0'];
+
+			for($i = 0; $i < count($ships); $i++){
+				$name = $ships[$i][0];
+				$creat = $ships[$i][1];
+				$shipPerm = $ships[$i][2];
+				$price = $ships[$i][3];
+				$desc = $ships[$i][4];
+
+				switch($shipPerm){
+					case 0:
+						$perm['faction'] = false;
+						$perm['other'] = false;
+						$perm['homeBase'] = false;
+						break;
+					case 1:
+
+						$perm['faction'] = true;
+						$perm['other'] = false;
+						$perm['homeBase'] = false;
+						break;
+					case 2:
+
+						$perm['faction'] = false;
+						$perm['other'] = true;
+						$perm['homeBase'] = false;
+						break;
+					case 3:
+
+						$perm['faction'] = true;
+						$perm['other'] = true;
+						$perm['homeBase'] = false;
+						break;
+					case 4:
+
+						$perm['faction'] = false;
+						$perm['other'] = false;
+						$perm['homeBase'] = true;
+						break;
+					case 5:
+
+						$perm['faction'] = true;
+						$perm['other'] = false;
+						$perm['homeBase'] = true;
+						break;
+					case 6:
+
+						$perm['faction'] = false;
+						$perm['other'] = true;
+						$perm['homeBase'] = true;
+						break;
+
+					case 7:
+						$perm['faction'] = true;
+						$perm['other'] = true;
+						$perm['homeBase'] = true;
+						break;
+
+					case 26:
+						$perm['faction'] = false;
+						$perm['other'] = true;
+						$perm['homeBase'] = false;
+						break;
+
+					default:
+						$perm['faction'] = false;
+						$perm['other'] = true;
+						$perm['homeBase'] = false;
+						break;
+				}
+
+				$data[$name]['creator'] = $creat;
+				$data[$name]['permission'] = $perm;
+				$data[$name]['price'] = $price;
+				$data[$name]['description'] = $desc;
+				if(isset($rateList[$name])){
+					$data[$name]['rate'] = $rateList[$name];
+				}
+			}
+			
+			return $data;
+		}
+
+		private function formatFac($ent){
+			$data = array();
+			$factions = $ent['factions-v0'][0];
+			$NStruct = $ent['factions-v0']['NStruct'];
+			$news = array();
+
+			foreach($NStruct as $key => $val){
+				if(is_array($NStruct[$key])){
+					foreach($NStruct[$key] as $key2 => $val2){
+						$dt = (string)$NStruct[$key][$key2]['dt'];
+						$id = $NStruct[$key][$key2]['id'];
+						$op = $NStruct[$key][$key2]['op'];
+						$msg = $NStruct[$key][$key2]['msg'];
+						$perm = $NStruct[$key][$key2]['perm'];
+
+						$news[$dt]['fid'] = $id;
+						$news[$dt]['author'] = $op;
+						$news[$dt]['msg'] = $msg;
+						$news[$dt]['perm'] = $perm;
+					}
+				}
+			}
+
+			foreach($factions as $key => $val){
+				$id = $factions[$key]['id'];
+				$data[$id]['uid'] = $factions[$key][0];
+				$data[$id]['name'] = $factions[$key][1];
+				$data[$id]['description'] = $factions[$key][2];
+
+				for($j = 0; $j < count($factions[$key]['mem']); $j++){
+					$player = $factions[$key]['mem'][$j][0];
+					$rank = $factions[$key]['mem'][$j][1];
+					$data[$id]['member'][$player] = $rank;
+				}
+
+				$data[$id]['ranks'] = array();
+				for($j = 0; $j < count($factions[$key]['00'][2]); $j++){
+					$arr['name'] = $factions[$key]['00'][2][$j];
+					$prem = $factions[$key]['00'][1][$j];
+					switch($prem){
+						case 0:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 1:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 2:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 3:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 4:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 5:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 6:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 7:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = false;
+							break;
+
+						case 8:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 9:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 10:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 11:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 12:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 13:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 14:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 15:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						case 2047:
+							$arr['perm']['edit'] = true;
+							$arr['perm']['kick'] = true;
+							$arr['perm']['invite'] = true;
+							$arr['perm']['permission-edit'] = true;
+							break;
+
+						default:
+							$arr['perm']['edit'] = false;
+							$arr['perm']['kick'] = false;
+							$arr['perm']['invite'] = false;
+							$arr['perm']['permission-edit'] = false;
+							break;
+					}
+					array_push($data[$id]['ranks'], $arr);
+				}
+
+				$data[$id]['home']['uid'] = $factions[$key]['home'];
+				$data[$id]['home']['sector']['x'] = $factions[$key][5][0];
+				$data[$id]['home']['sector']['y'] = $factions[$key][5][1];
+				$data[$id]['home']['sector']['z'] = $factions[$key][5][2];
+				$data[$id]['pw'] = $factions[$key]['pw'];
+				$data[$id]['fn'] = $factions[$key]['fn'];
+				$data[$id]['options']['public'] = ($factions[$key][4] == 1) ? true : false;
+				$data[$id]['options']['warOnHostile'] = ($factions[$key]['aw'] == 1) ? true : false;
+				$data[$id]['options']['NeutralEnemy'] = ($factions[$key]['en'] == 1) ? true : false;
+
+				foreach($news as $key2 => $val2){
+					if($news[$key2]['fid'] == $id){
+						$data[$id]['news'][$key2]['author'] = $news[$key2]['author'];
+						$data[$id]['news'][$key2]['msg'] = $news[$key2]['msg'];
+						$data[$id]['news'][$key2]['perm'] = $news[$key2]['perm'];
+					}
+				}
+			}
+			
+			return $data;
+		}
+
+		private function formatShop($ent){
+			$data = array();
+			$sc = $ent['ShopSpaceStation2']['sc'];
+			$uid = $sc['uniqueId'];
+			$transform = $sc['transformable']['transform'];
+
+			$data[$uid]['type'] = $this->type;
+
+			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
+			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
+			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+
+			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
+			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
+			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+
+			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
+			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
+			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
+			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
+			$data[$uid]['dock']['byte_a'] = $sc[0][2];
+			$data[$uid]['dock']['byte_b'] = $sc[0][3];
+			$data[$uid]['dock']['s'] = $sc[0]['s'];
+
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
+			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'];
+
+			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
+			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
+			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+
+			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
+			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
+			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+
+			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
+			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
+			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+
+			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
+			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
+			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+
+			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$data[$uid]['transformable']['noAI'] = $sc['transformable']['noAI'];
+			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
+			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+
+			$data[$uid]['dummy'] = $sc['dummy'];
+
+			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
+			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
+			$data[$uid]['creatorId']['seed'] = $sc['3'];
+			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
+			$data[$uid]['creatorId']['byte_y'] = $sc['5'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+
+			$data[$uid]['inventory'] = $ent['ShopSpaceStation2']['inventory0'];
+			$data[$uid]['inventory']['credits'] = $ent['ShopSpaceStation2'][0][4];
+
+			$data[$uid]['unk_last']['double_z'] = $ent['ShopSpaceStation2'][0][0];
+			$data[$uid]['unk_last']['long_z'] = $ent['ShopSpaceStation2'][0][1];
+			$data[$uid]['unk_last']['arrData_y'] = $ent['ShopSpaceStation2'][0][2];
+			$data[$uid]['unk_last']['byte_z'] = $ent['ShopSpaceStation2'][0][3];
+			$data[$uid]['unk_last']['arrData_z'] = $ent['ShopSpaceStation2'][0][5];
+
+			return $data;
+		}
+
+		private function formatStation($ent){
+			$data = array();
+			$sc = $ent['SpaceStation']['sc'];
+			$uid = $sc['uniqueId'];
+			$transform = $sc['transformable']['transform'];
+			$AIConfig = $sc['transformable']['AIConfig0'];
+
+			$data[$uid]['type'] = $this->type;
+
+			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
+			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
+			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+
+			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
+			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
+			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+
+			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
+			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
+			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
+			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
+			$data[$uid]['dock']['byte_a'] = $sc[0][2];
+			$data[$uid]['dock']['byte_b'] = $sc[0][3];
+			$data[$uid]['dock']['s'] = $sc[0]['s'];
+
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
+			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+
+			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
+			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
+			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+
+			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
+			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
+			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+
+			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
+			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
+			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+
+			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
+			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
+			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+
+			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$configType = $AIConfig['AIElement0']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
+			$configType = $AIConfig['AIElement1']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
+			$configType = $AIConfig['AIElement2']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
+			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
+			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+
+			$data[$uid]['container'] = array();
+			$data[$uid]['container']['controllerStructure'] = array();
+			$data[$uid]['container']['shipMan0'] = array();
+
+			$oriController = $sc['container']['controllerStructure'];
+			foreach($oriController as $key => $val){
+				$arr['type'] = $oriController[$key]['type'];
+				$arr['index'] = $oriController[$key]['index'];
+				$arr['inventory'] = $oriController[$key]['inventory0'];
+				array_push($data[$uid]['container']['controllerStructure'], $arr);
+			}
+
+			$oriShipMan = $sc['container']['shipMan0'];
+			foreach($oriShipMan as $key => $val){
+				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+			}
+
+			$data[$uid]['container']['power'] = $sc['container']['pw'];
+			$data[$uid]['container']['shield'] = $sc['container']['sh'];
+			$data[$uid]['container']['exS']['inventory'] = $sc['container']['exS']['inventory0'];
+
+			$data[$uid]['container']['exS']['unk']['double_a'] = $sc['container']['exS'][0][0];
+			$data[$uid]['container']['exS']['unk']['long_a'] = $sc['container']['exS'][0][1];
+			$data[$uid]['container']['exS']['unk']['arrData_a'] = $sc['container']['exS'][0][2];
+			$data[$uid]['container']['exS']['unk']['byte_a'] = $sc['container']['exS'][0][3];
+			$data[$uid]['container']['exS']['unk']['arrData_b'] = $sc['container']['exS'][0][5];
+
+			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
+			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
+			$data[$uid]['creatorId']['seed'] = $sc['3'];
+			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
+			$data[$uid]['creatorId']['long_z'] = $sc['5'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+
+			return $data;
+		}
+
+		private function formatAst($ent){
+			$data = array();
+			$sc = $ent['sc'];
+			$uid = $sc['uniqueId'];
+			$transform = $sc['transformable']['transform'];
+
+			$data[$uid]['type'] = $this->type;
+
+			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
+			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
+			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+
+			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
+			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
+			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+
+			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
+			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
+			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
+			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
+			$data[$uid]['dock']['byte_a'] = $sc[0][2];
+			$data[$uid]['dock']['byte_b'] = $sc[0][3];
+			$data[$uid]['dock']['s'] = $sc[0]['s'];
+
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
+			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+
+			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
+			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
+			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+
+			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
+			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
+			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+
+			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
+			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
+			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+
+			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
+			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
+			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+
+			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$data[$uid]['transformable']['noAI'] = $sc['transformable']['noAI'];
+			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
+			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+
+			$data[$uid]['dummy'] = $sc['dummy'];
+
+			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
+			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
+			$data[$uid]['creatorId']['seed'] = $sc['3'];
+			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
+			$data[$uid]['creatorId']['byte_z'] = $sc['5'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+
+			return $data;
+		}
+
+		private function formatPlan($ent){
+			$data = array();
+			$sc = $ent['Planet']['sc'];
+			$uid = $sc['uniqueId'];
+			$transform = $sc['transformable']['transform'];
+			$AIConfig = $sc['transformable']['AIConfig0'];
+
+			$data[$uid]['type'] = $this->type;
+			$data[$uid]['byte_a'] = $ent['Planet'][0];
+
+			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
+			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
+			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+
+			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
+			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
+			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+
+			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
+			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
+			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
+			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
+			$data[$uid]['dock']['byte_a'] = $sc[0][2];
+			$data[$uid]['dock']['byte_b'] = $sc[0][3];
+			$data[$uid]['dock']['s'] = $sc[0]['s'];
+
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
+			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+
+			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
+			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
+			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+
+			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
+			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
+			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+
+			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
+			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
+			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+
+			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
+			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
+			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+
+			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$configType = $AIConfig['AIElement0']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
+			$configType = $AIConfig['AIElement1']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
+			$configType = $AIConfig['AIElement2']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
+			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
+			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+
+			$data[$uid]['container'] = array();
+			$data[$uid]['container']['controllerStructure'] = array();
+			$data[$uid]['container']['shipMan0'] = array();
+
+			$oriController = $sc['container']['controllerStructure'];
+			foreach($oriController as $key => $val){
+				$arr['type'] = $oriController[$key]['type'];
+				$arr['index'] = $oriController[$key]['index'];
+				$arr['inventory'] = $oriController[$key]['inventory0'];
+				array_push($data[$uid]['container']['controllerStructure'], $arr);
+			}
+
+			$oriShipMan = $sc['container']['shipMan0'];
+			foreach($oriShipMan as $key => $val){
+				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+			}
+
+			$data[$uid]['container']['power'] = $sc['container']['pw'];
+			$data[$uid]['container']['shield'] = $sc['container']['sh'];
+			$data[$uid]['container']['exS']['inventory'] = $sc['container']['exS']['inventory0'];
+
+			$data[$uid]['container']['exS']['unk']['double_a'] = $sc['container']['exS'][0][0];
+			$data[$uid]['container']['exS']['unk']['long_a'] = $sc['container']['exS'][0][1];
+			$data[$uid]['container']['exS']['unk']['arrData_a'] = $sc['container']['exS'][0][2];
+			$data[$uid]['container']['exS']['unk']['byte_a'] = $sc['container']['exS'][0][3];
+			$data[$uid]['container']['exS']['unk']['arrData_b'] = $sc['container']['exS'][0][5];
+
+			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
+			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
+			$data[$uid]['creatorId']['seed'] = $sc['3'];
+			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
+			$data[$uid]['creatorId']['long_z'] = $sc['5'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+
+			return $data;
+		}
+
+		private function formatShip($ent){
+			$data = array();
+			$sc = $ent['sc'];
+			$uid = $sc['uniqueId'];
+			$transform = $sc['transformable']['transform'];
+			$AIConfig = $sc['transformable']['AIConfig0'];
+
+			$data[$uid]['type'] = $this->type;
+
+			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
+			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
+			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+
+			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
+			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
+			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+
+			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
+			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
+			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
+			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
+			$data[$uid]['dock']['byte_a'] = $sc[0][2];
+			$data[$uid]['dock']['byte_b'] = $sc[0][3];
+			$data[$uid]['dock']['s'] = $sc[0]['s'];
+
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
+			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+
+			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
+			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
+			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+
+			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
+			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
+			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+
+			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
+			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
+			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+
+			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
+			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
+			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+
+			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$configType = $AIConfig['AIElement0']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
+			$configType = $AIConfig['AIElement1']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
+			$configType = $AIConfig['AIElement2']['type'];
+			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
+			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
+			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+
+			$data[$uid]['container'] = array();
+			$data[$uid]['container']['controllerStructure'] = array();
+			$data[$uid]['container']['shipMan0'] = array();
+
+			$oriController = $sc['container']['controllerStructure'];
+			foreach($oriController as $key => $val){
+				$arr['type'] = $oriController[$key]['type'];
+				$arr['index'] = $oriController[$key]['index'];
+				$arr['inventory'] = $oriController[$key]['inventory0'];
+				array_push($data[$uid]['container']['controllerStructure'], $arr);
+			}
+
+			$oriShipMan = $sc['container']['shipMan0'];
+			foreach($oriShipMan as $key => $val){
+				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+			}
+
+			$data[$uid]['container']['power'] = $sc['container']['pw'];
+			$data[$uid]['container']['shield'] = $sc['container']['sh'];
+			$data[$uid]['container']['ex'] = $sc['container']['ex'];
+
+			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
+			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
+			$data[$uid]['creatorId']['seed'] = $sc['3'];
+			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
+			$data[$uid]['creatorId']['long_z'] = $sc['5'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+
+			return $data;
+		}
+
+		private function formatChar($ent, $pseudo){
+			$data = array();
+			$sc = $ent['PlayerCharacter'];
+			$transform = $sc['transformable']['transform'];
+
+			$data['name'] = $pseudo;
+			$data['id'] = $sc['id'];			
+			$data['speed'] = $sc['speed'];	
+			$data['stepHeight'] = $sc['stepHeight'];
+
+			$data['transformable']['mass'] = $sc['transformable']['mass'];
+
+			$data['transformable']['transformX']['x'] = $transform[0];
+			$data['transformable']['transformX']['y'] = $transform[1];
+			$data['transformable']['transformX']['z'] = $transform[2];
+
+			$data['transformable']['transformY']['x'] = $transform[4];
+			$data['transformable']['transformY']['y'] = $transform[5];
+			$data['transformable']['transformY']['z'] = $transform[6];
+
+			$data['transformable']['transformZ']['x'] = $transform[8];
+			$data['transformable']['transformZ']['y'] = $transform[9];
+			$data['transformable']['transformZ']['z'] = $transform[10];
+
+			$data['transformable']['localPos']['x'] = $transform[12];
+			$data['transformable']['localPos']['y'] = $transform[13];
+			$data['transformable']['localPos']['z'] = $transform[14];
+
+			$data['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
+			$data['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
+			$data['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+
+			$data['transformable']['noAI'] = $sc['transformable']['noAI'];
+			$data['transformable']['fid'] = $sc['transformable']['fid'];
+			$data['transformable']['own'] = $sc['transformable']['own'];
+
+			return $data;
+		}
+
+		private function formatStats($ent, $pseudo){
+			$data = array();
+			$sc = $ent['PlayerState'];
+
+			$data['name'] = $pseudo;
+			$data['credits'] = $sc['credits'];
+			$data['inventory'] = $sc['inventory0'];
+			$data['spawn'] = $sc['spawn'];
+			$data['sector'] = $sc['sector'];
+			$data['lspawn'] = $sc['lspawn'];
+			$data['lsector'] = $sc['lsector'];
+			$data['fid'] = $sc['pFac-v0'][0];
+			$data['lastLogin'] = $sc[0];
+			$data['unk_timestamp'] = $sc[1];
+			$data['lastShip'] = $sc[2];
+
+			for($i = 0; $i < count($sc['hist']); $i++){
+				$data['hist'][$i]['timestamp'] = $sc['hist'][$i][0];
+				$data['hist'][$i]['ip'] = $sc['hist'][$i][1];
+			}
+
+			for($i = 0; $i < count($sc[$pseudo]); $i++){
+				$data[$pseudo][$i]['ship'] = $sc[$pseudo][$i][0];
+				$data[$pseudo][$i]['unk'] = $sc[$pseudo][$i][1];
+			}
+			
+			return $data;
+		}
+
+
+		//============================= Binary Decoders =============================//
+
+		private function readByte(){
+			return fread($this->stream, 1);
+		}
+
+		private function readNextByte(){
+			$pos = ftell($this->stream);
+			$byte = $this->readByte();
+			fseek($this->stream, $pos);
+			return $byte;
+		}
+
+		private function readNextBytes($lenght){
+			$pos = ftell($this->stream);
+			$byte = $this->readBytes($lenght);
+			fseek($this->stream, $pos);
+			return $byte;
+		}
+
+		private function readBytes($length){
+			return fread($this->stream, $length);
+		}
+
+		private function readInt8(){
+			$byte = fread($this->stream, 1);
+			return $this->binToInt8($byte);
+		}
+
+		private function readInt16(){
+			$bytes = fread($this->stream, 2);
+			return $this->binToInt16($bytes);
+		}
+
+		private function readInt32(){
+			$bytes = fread($this->stream, 4);
+			return $this->binToInt32($bytes);
+		}
+
+		private function readInt64(){
+			$bytes = fread($this->stream, 8);
+			return $this->binToInt64($bytes);
+		}
+
+		private function readFloat(){
+			$bytes = fread($this->stream, 4);
+			return $this->binToFloat($bytes);
+		}
+
+		private function readDouble(){
+			$bytes = fread($this->stream, 8);
+			return $this->binToDouble($bytes);
+		}
+
+		private function readString(){
+			$bytes = fread($this->stream, 2);
+			$length = $this->binToInt16($bytes);
+			$string = '';
+			if($length > 0){
+				$string = fread($this->stream, $length);
+			}
+			return $string;
+		}
+
+		public function binToInt8($binStr){
+			$byte = sprintf("%08b", ord($binStr));
+			return bindec($byte);
+		}
+
+		public function binToInt16($binStr){
+			$bytes = null;
+			for($i = 0; $i < 2; $i++){
 				$bytes .= sprintf("%08b", ord($binStr[$i]));
 			}
+			return bindec($bytes);
+		}
 
-			if($bytes === NULL32){
-				return NULLFLOAT;
+		public function binToInt32($binStr){
+			$bytes = null;
+			if(strlen($binStr) == 4){
+
+				for($i = 0; $i < 4; $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
+				}
+
+				if($bytes[0] == "1"){
+					$out = "";
+					$mode = "init";
+
+					for($i = strlen($bytes)-1; $i >= 0; $i--){
+						if($mode != "init"){
+							$out = ($bytes[$i] == "0" ? "1" : "0").$out;
+						}
+						else{
+							if($bytes[$i] == "1"){
+								$out = "1".$out;
+								$mode = "invert";
+							}
+							else{
+								$out = "0".$out;
+							}
+						}
+					}
+
+					return bindec($out) * (-1);
+				}
 			}
 			else{
-				$hex = base_convert($bytes, 2, 16);
-				$hex = chunk_split($hex, 2, " ");
-				$hex = substr($hex, 0, -1);
-				$hex = hexReverse($hex);
-				$hex = hexify($hex);
-				if($hex === false){
-					die("Error: Invalide hex for float");
-				}
-				$dec = unpack("f", $hex);
-				if($dec[1] == (-0)){
-					$dec[1] = (float)0;
-				}
+				die("Error: int type have 4 bytes.\n");
 			}
-		}
-		else{
-			die("Error: float type have 4 bytes.\n");
+			return bindec($bytes);
 		}
 
-		return $dec[1];
-	}
+		public function binToInt64($binStr){
+			$bytes = null;
+			if(strlen($binStr) == 8){
 
-	function binInt16($binStr){
-		$bytes = null;
-		
-		for($i = 0; $i < 2; $i++){
-			$bytes .= sprintf("%08b", ord($binStr[$i]));
-		}
-		
-		return bindec($bytes);
-	}
+				for($i = 0; $i < 8; $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
+				}
 
-	function binInt32($binStr){
-		$bytes = null;
-		if(strlen($binStr) == 4){
+				if($bytes[0] == "1"){
+					$out = "";
+					$mode = "init";
 
-			for($i = 0; $i < 4; $i++){
-				$bytes .= sprintf("%08b", ord($binStr[$i]));
-			}
-
-			if($bytes[0] == "1"){
-				$out = "";
-				$mode = "init";
-
-				for($i = strlen($bytes)-1; $i >= 0; $i--){
-					if($mode != "init"){
-						$out = ($bytes[$i] == "0" ? "1" : "0").$out;
-					}
-					else{
-						if($bytes[$i] == "1"){
-							$out = "1".$out;
-							$mode = "invert";
+					for($i = strlen($bytes)-1; $i >= 0; $i--){
+						if($mode != "init"){
+							$out = ($bytes[$i] == "0" ? "1" : "0").$out;
 						}
 						else{
-							$out = "0".$out;
+							if($bytes[$i] == "1"){
+								$out = "1".$out;
+								$mode = "invert";
+							}
+							else{
+								$out = "0".$out;
+							}
 						}
 					}
+
+					return bindec($out) * (-1);
+				}
+			}
+			else{
+				die("Error: int type have 4 bytes.\n");
+			}
+			return bindec($bytes);
+		}
+
+		public function binToFloat($binStr){
+			$bytes = null;
+
+			if(strlen($binStr) == 4){
+
+				for($i = 0; $i < 4; $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
 				}
 
-				return bindec($out) * (-1);
-			}
-		}
-		else{
-			die("Error: int type have 4 bytes.\n");
-		}
-		return bindec($bytes);
-	}
+				if($bytes === NULL32){
+					return NULLFLOAT;
+				}
+				else{
+					$hex = base_convert($bytes, 2, 16);
+					$hex = chunk_split($hex, 2, " ");
+					$hex = substr($hex, 0, -1);
+					$hex = $this->hexReverse($hex);
+					$hex = $this->hexify($hex);
 
-	function binInt64($binStr){
-		$bytes = null;
-		if(strlen($binStr) == 8){
-
-			for($i = 0; $i < 8; $i++){
-				$bytes .= sprintf("%08b", ord($binStr[$i]));
-			}
-
-			if($bytes[0] == "1"){
-				$out = "";
-				$mode = "init";
-
-				for($i = strlen($bytes)-1; $i >= 0; $i--){
-					if($mode != "init"){
-						$out = ($bytes[$i] == "0" ? "1" : "0").$out;
+					if($hex === false){
+						die("Error: Invalide hex for float");
 					}
-					else{
-						if($bytes[$i] == "1"){
-							$out = "1".$out;
-							$mode = "invert";
-						}
-						else{
-							$out = "0".$out;
-						}
+					$dec = unpack("f", $hex);
+
+					if($dec[1] == (-0)){
+						$dec[1] = (float)0;
 					}
 				}
-
-				return bindec($out) * (-1);
 			}
-		}
-		else{
-			die("Error: int type have 4 bytes.\n");
-		}
-		return bindec($bytes);
-	}
-
-	function checkServ($host, $port){
-		$packet = pack("N", 9).pack("c", 42).pack("n", -1).pack("c", 1).pack("c", 111).pack("N", 0);
-		$socket = fsockopen($host, $port, $errno, $errstr, 1);
-
-		if($socket && $errno ==0){
-			fputs($socket, $packet);
-			fread($socket, 4); //buffer size
-
-			$timestamp = readInt64($socket);
-			fread($socket, 12);
-
-			$version = round(readFloat($socket), 5);
-			fread($socket, 2);
-
-			$name = readStr($socket);
-			fread($socket, 2);
-
-			$desc = readStr($socket);
-			fread($socket, 1); //unkown bytes
-
-			$startTime = readInt64($socket);
-			fread($socket, 1); //unkown bytes
-
-			$connected = readInt32($socket);
-			fread($socket, 1); //unkown bytes
-
-			$maxPlayer = readInt32($socket);
-
-			$return = array(
-				'online' => true,
-				'timestamp' => $timestamp,
-				'version' => $version,
-				'name' => $name,
-				'description' => $desc,
-				'startTime' => $startTime,
-				'connected' => $connected,
-				'maxPlayer' => $maxPlayer
-			);
-		}
-		else{
-			$return = array(
-				'online' => false,
-				'timestamp' => round(microtime(1) * 1000),
-				'version' => 'unknown',
-				'name' => 'unknown',
-				'description' => 'unknown',
-				'startTime' => 0,
-				'connected' => 'unknown',
-				'maxPlayer' => 'unknown'
-			);
-		}
-
-		return $return;
-	}
-
-	function hexReverse($hex){
-		$return = "";
-		$hexArr = explode(" ", $hex);
-
-		foreach ($hexArr as $i) {
-			$return = $i . " " . $return;
-		}
-
-		$return = substr($return, 0, -1);
-		return $return;
-	}
-
-	function hexify($hex){
-		static $hexVal = array(
-			'0'=>0,		'1'=>1,		'2'=>2,		'3'=>3,
-			'4'=>4,		'5'=>5,		'6'=>6,		'7'=>7,
-			'8'=>8,		'9'=>9,		'A'=>10,	'B'=>11,
-			'C'=>12,	'D'=>13,	'E'=>14,	'F'=>15,
-			'a'=>10,	'b'=>11,	'c'=>12,	'd'=>13,
-			'e'=>14,	'f'=>15,
-		);
-		$return = '';
-		$hexArr = explode(' ', $hex);
-
-		foreach ($hexArr as $i) {
-
-			if (!ctype_xdigit($i)){
-				return false;
+			else{
+				die("Error: float type have 4 bytes.\n");
 			}
 
-			$tmp = $hexVal[$i{0}] * 16 + $hexVal[$i{1}];
-			$return .= chr($tmp);
+			return $dec[1];
 		}
 
-		return $return;
-	}
+		public function binToDouble($binStr){
+			$bytes = null;
 
-	function readFloat($stream){
-		return binFloat(fread($stream, 4));
-	}
+			if(strlen($binStr) == 8){
 
-	function readInt16($stream){
-		return binInt16(fread($stream, 2));
-	}
+				for($i = 0; $i < 8; $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
+				}
 
-	function readInt32($stream){
-		return binInt32(fread($stream, 4));
-	}
+				if($bytes === NULL64){
+					return NULLFLOAT;
+				}
+				else{
+					$hex = base_convert($bytes, 2, 16);
+					$hex = chunk_split($hex, 2, " ");
+					$hex = substr($hex, 0, -1);
+					$hex = $this->hexReverse($hex);
+					$hex = $this->hexify($hex);
 
-	function readInt64($stream){
-		return binInt64(fread($stream, 8));
-	}
+					if($hex === false){
+						die("Error: Invalide hex for double");
+					}
 
-	function readStr($stream){
-		$strLength = bindec(sprintf("%08b", ord(fread($stream, 1))));
-		return fread($stream, $strLength);
+					$dec = unpack("d", $hex);
+				}
+			}
+			else{
+				die("Error: double type have 8 bytes.\n");
+			}
+
+			return $dec[1];
+		}
+
+		public function hexReverse($hex){
+			$return = "";
+			$hexArr = explode(" ", $hex);
+
+			foreach ($hexArr as $i) {
+				$return = $i . " " . $return;
+			}
+
+			$return = substr($return, 0, -1);
+			return $return;
+		}
+
+		public function hexify($hex){
+			static $hexVal = array(
+				'0'=>0,		'1'=>1,		'2'=>2,		'3'=>3,
+				'4'=>4,		'5'=>5,		'6'=>6,		'7'=>7,
+				'8'=>8,		'9'=>9,		'A'=>10,	'B'=>11,
+				'C'=>12,	'D'=>13,	'E'=>14,	'F'=>15,
+				'a'=>10,	'b'=>11,	'c'=>12,	'd'=>13,
+				'e'=>14,	'f'=>15,
+			);
+			$return = '';
+			$hexArr = explode(' ', $hex);
+
+			foreach ($hexArr as $i) {
+
+				if (!ctype_xdigit($i)){
+					return false;
+				}
+
+				$tmp = $hexVal[$i{0}] * 16 + $hexVal[$i{1}];
+				$return .= chr($tmp);
+			}
+
+			return $return;
+		}
+
+		public function bits($x, $start, $len){
+			//Used to mask a portion of a bitfield.
+			$x = $x >> $start;
+			$x = $x & (pow(2, $len )-1);
+			
+			return $x;
+		}
 	}
 ?>

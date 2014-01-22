@@ -10,17 +10,17 @@
 	support: blackcancer@initsysrev.net
 */
 var LoadedTextures = {
-	shop: new THREE.ImageUtils.loadTexture("res/img/starmap/shop.png"),
-	station: new THREE.ImageUtils.loadTexture("res/img/starmap/station.png"),
-	asteroid: new THREE.ImageUtils.loadTexture("res/img/starmap/asteroid.png"),
-	ship: new THREE.ImageUtils.loadTexture("res/img/starmap/ship.png"),
+	shop: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/shop.png"),
+	station: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/station.png"),
+	asteroid: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/asteroid.png"),
+	ship: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/ship.png"),
 	planet: {
-		red: new THREE.ImageUtils.loadTexture("res/img/starmap/redPlanet.png"),
-		terran: new THREE.ImageUtils.loadTexture("res/img/starmap/terranPlanet.png"),
-		desert: new THREE.ImageUtils.loadTexture("res/img/starmap/desertPlanet.png"),
-		alien: new THREE.ImageUtils.loadTexture("res/img/starmap/alienPlanet.png"), 
-		ice: new THREE.ImageUtils.loadTexture("res/img/starmap/icePlanet.png"),
-		unknown: new THREE.ImageUtils.loadTexture("res/img/starmap/fallPlanet.png"),
+		red: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/redPlanet.png"),
+		terran: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/terranPlanet.png"),
+		desert: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/desertPlanet.png"),
+		alien: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/alienPlanet.png"), 
+		ice: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/icePlanet.png"),
+		unknown: new THREE.ImageUtils.loadTexture("res/img/starmap/icons/fallPlanet.png"),
 	}
 };
 
@@ -119,7 +119,7 @@ var StarmapEntity = function(){
 		this.position.y = this.position.y / 4.7;
 		this.position.z = this.position.z / 4.7;
 		this.sprite.position = this.position;
-		this.sprite.uid = this.uid;
+		this.sprite.StarOS_uid = this.uid;
 		this.sprite.scale.set(this.scale[0], this.scale[1], this.scale[2]);
 		scene.add(this.sprite);
 	}

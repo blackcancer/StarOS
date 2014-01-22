@@ -3,7 +3,7 @@
 	Description: This script generate a 3D Starmap for starmade
 	License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-	FileVersion: 0.5-rev00001					Date: 2013-12-28
+	FileVersion: 0.5-rev00011					Date: 2013-12-28
 	By Blackcancer
 
 	website: http://initsysrev.net
@@ -86,25 +86,25 @@ var StarOS_Map = function(options){
 
 		var MAPCLASS = this,
 			_SESSION = {},
-			entDictionary ={},
+			systemDict ={},
+			systemSprite =[],
 			facDictionary ={},
-			playDictionary = {},
 			user = {},
 			mouseMove ={},
-			chunk = [],
+			chunks = [],
 			chunkSprite = [],
 			chunkEnt = {},
 			chunkSize = 16,
 			currentSystem = [0, 0, 0],
-			sectorSize = 1300,
+			sectorSize = 1300,   //sector marge is included
 			intersected = false,
 			logged = false,
 			showInfo = false,
-			keyboard, projector, scene, camera, renderer, controls, stats, chunkLoader;
+			sysView = false,
+			keyboard, projector, scene, camera, renderer, controls, stats, chunkLoader, systemLoader;
 
 		StarOS_Map.prototype.init = function(){
-
-			this.getPlayers();
+			
 			this.getFactions();
 			if(USE_LOGIN){
 				jqxhr_session = $.ajax({
@@ -115,27 +115,25 @@ var StarOS_Map = function(options){
 					dataType: 'json'
 				})
 				.done(function(json){
-					if(DEBUG){console.debug("Load _SESSION...");}
-					
+					MAPCLASS.logs("Load _SESSION...");
 					_SESSION = json;
 				})
 				.fail(function(result, err_code, err){
-					if(DEBUG_MODE){
-						console.debug("JQXHR_session " + err);
-					}
+					MAPCLASS.logs("JQXHR_session " + err);
 				});
 
 				if(_SESSION.user != undefined){
-					if(DEBUG){console.debug("Logged!");}
+					this.logs("Logged!");
 					logged = true;
 				}
 				this.initLogin();
 			}
-			this.systemSelector();
+			
 			this.initWebGL();
-			this.updateDomElem();
-			this.initChunk();
 			this.initSkybox();
+			
+			this.updateDomElem();
+			this.initWorker('initSystemDict');
 			this.setupEvent();
 
 			this.animate = this.animate.bind(this);
@@ -143,52 +141,38 @@ var StarOS_Map = function(options){
 		},
 
 
-		StarOS_Map.prototype.getPlayers = function(){
-			if(DEBUG){console.debug("Requesting players.json...");}
-
+		StarOS_Map.prototype.getPlayer = function(){
+			this.logs("Requesting Stats_"+ _SESSION.user.name +".json...");
+			
 			jqxhr_play = $.ajax({
-				url:'scripts/StarOS_json/players.json',
+				url:'scripts/StarOS_json/Players/Stats_'+ _SESSION.user.name +'.json',
 				type: 'GET',
 				async: false,
 				dataType: 'json'
 			})
-			.done(function(json){playDictionary = json;})
+			.done(function(json){user = json;})
 			.fail(function(result, err_code, err){
-				if(DEBUG){console.debug("JQXHR_play " + err);}
+				MAPCLASS.logs("JQXHR_play " + err);
 			});
+			
+			this.logs("Player data:", user);
 		},
 
 
 		StarOS_Map.prototype.getFactions = function(){
-			if(DEBUG){console.debug("Requesting factions.json...");}
+			this.logs("Requesting factions.json...");
 
 			jqxhr_fac = $.getJSON('scripts/StarOS_json/factions.json')
 			.done(function(json){facDictionary = json;})
 			.fail(function(result, err_code, err){
-				if(DEBUG){console.debug("JQXHR_fac " + err);}
+				MAPCLASS.logs("JQXHR_fac " + err);
 			});
-		},
-
-
-		StarOS_Map.prototype.retrievingPlayer = function(){
-			if(DEBUG){console.debug("retrieving player from playDictionary");}
-
-			for(i in playDictionary){
-				if(playDictionary[i].name = _SESSION.user){
-					user = playDictionary[i];
-				}
-			}
-
-			if(DEBUG){
-				console.debug("Player data:");
-				console.debug(user);
-			}
 		},
 
 
 		StarOS_Map.prototype.initWebGL = function(){
 
-			if(DEBUG){console.debug("Initialize WebGL...");}
+			this.logs("Initialize WebGL...");
 
 			keyboard = new THREEx.KeyboardState();
 			projector = new THREE.Projector();
@@ -202,7 +186,7 @@ var StarOS_Map = function(options){
 
 			if(Detector.webgl){
 
-				if(DEBUG){console.debug("Use WebGLRenderer...");}
+				this.logs("Use WebGLRenderer...");
 
 				renderer = new THREE.WebGLRenderer({
 					antialias: true
@@ -211,7 +195,7 @@ var StarOS_Map = function(options){
 			}
 			else{
 
-				if(DEBUG){console.debug("Use CanvasRenderer...");}
+				this.logs("Use CanvasRenderer...");
 
 				renderer = new THREE.CanvasRenderer();
 
@@ -230,7 +214,7 @@ var StarOS_Map = function(options){
 
 		StarOS_Map.prototype.initSkybox = function(){
 
-			if(DEBUG){console.debug("Initialize skyBox...");}
+			this.logs("Initialize skyBox...");
 
 			var imagePrefix = "res/img/starmap/skybox/generic_",
 				directions = ["posx", "negx", "posy", "negy", "posz", "negz"],
@@ -251,249 +235,310 @@ var StarOS_Map = function(options){
 			skyBox.name = "skyBox";
 			scene.add(skyBox);
 		},
-
-
-		StarOS_Map.prototype.initChunk = function(){
-
+		
+		
+		StarOS_Map.prototype.initWorker = function(command, data){
 			if(window.Worker && !FALLBACK){
+				
+				this.logs("Initialize worker worker_systemLoader.js...");
 
-				if(DEBUG){console.debug("Initialize worker chunkLoader.js...");}
-
-				var data = {};
-				chunkLoader = new Worker("scripts/StarOS_Map/chunkLoader.js");
-				chunkLoader.onmessage = function(event){
+				systemLoader = new Worker("scripts/StarOS_Map/worker_systemLoader.js");
+				systemLoader.onmessage = function(event){
 					MAPCLASS.parseWorker(event);
 				};
-
-				data.showShip = SHOW_SHIP;
-				data.showAsteroid = SHOW_ASTEROID;
-				data.useLogin = USE_LOGIN;
-				data.currentSystem = currentSystem;
-				data.chunkSize = chunkSize;
-				data.sectorSize = sectorSize;
-				data.fid = 0;
-
-				if(user.fid != undefined){
-					data.fid = user.fid;
-				}
-
-				chunkLoader.postMessage({
-					type: 'initChunk',
-					value: data
+				systemLoader.postMessage({
+					command: command,
+					data: data,
 				});
+			}
+			else{				
+				this.logs("Worker not yet implemented, fallback loading mode...");
 				
-			}
-			else{
-
-				if(DEBUG){console.debug("Worker not yet implemented, fallback loading mode");}
-
-				this.fallbackInitChunk();
-
-			}
-
-		},
-
-
-		StarOS_Map.prototype.reinitChunk = function(){
-
-			if(DEBUG){console.debug("Reinitialize chunk...");}
-
-			this.unloadChunk();
-			this.initChunk();
-
-		},
-
-
-		StarOS_Map.prototype.fallbackInitChunk = function(){
-
-			if(DEBUG){console.debug("Fallback: \"Init entities\"");}
-
-			$.getJSON('scripts/StarOS_json/entities.json')
-			.done(function(json){
-				var i, fid = 0;
-
-				if(user.fid != undefined){
-					fid = user.fid
+				switch(command){
+					case 'initSystemDict':
+						this.fallbackInitSysDict();
+						break;
+					case 'initSectors':
+						this.fallbackInitSectors(data);
+						break;
+					default:
+						this.logs("Unknow command -> " + command);
+						break;
 				}
+			}
+			
+		},
 
-				if(!SHOW_SHIP || !SHOW_ASTEROID || USE_LOGIN){
-					for(i in json){
-						if(!SHOW_SHIP && json[i].type == 5){
-							delete json[i];
-						}
-						else if(!SHOW_ASTEROID && json[i].type == 3){
-							delete json[i];
-						}
-						else if(USE_LOGIN){
-							if(json[i].fid != fid && json[i].fid != 0){
-								delete json[i];
-							}
-						}
+
+		StarOS_Map.prototype.fallbackInitSysDict = function(){
+			this.logs("Fallback loading system dictionnary");
+			this.loading("Fallback loading system from database...");
+
+			$.getJSON('scripts/StarOS_json/Entities/systems.json')
+			.done(function(json){
+				var sys, coords;
+				
+				for(sys in json){
+					coords = json[sys].split("_");
+					systemDict[sys] = {
+						x: parseInt(coords[0]),
+						y: parseInt(coords[1]),
+						z: parseInt(coords[2])
 					}
 				}
 
-				if(DEBUG){
-					console.debug("Fallback: \"Entities received\"---->");
-					console.debug(json);
-				}
-
-				entDictionary = json;
-				MAPCLASS.fallbackLoadChunk();
+				MAPCLASS.renderSystem();
 			})
 			.fail(function(result, err_code, err){
-				if(DEBUG){console.debug("JQXHR_play " + err);}
-			});
+				MAPCLASS.logs("GetJson fallback system dictionnary " + err);
+			})
 		},
 
 
-		StarOS_Map.prototype.fallbackLoadChunk = function(){
+		StarOS_Map.prototype.renderSystem = function(){
+			this.logs("Render global systems view...");
 
-			if(DEBUG){console.debug("Fallback: \"Loading chunk\"");}
+			var texture = THREE.ImageUtils.loadTexture("res/img/starmap/icons/disc.png");
+			
+			for(key in systemDict){
+				var material, sprite;
+
+				material = new THREE.SpriteMaterial({
+					map: texture,
+					useScreenCoordinates: false,
+					color: 0xffffff
+				});
+				material.color.setHSL(0.5, 0.75, 0.5 );
+				
+				sprite = new THREE.Sprite(material);
+				sprite.position = {
+					x: systemDict[key].x * 500,
+					y: systemDict[key].y * 500,
+					z: systemDict[key].z * 500
+				};
+				
+				sprite.scale.set(200, 200, 1.0)
+				sprite.StarOS_uid = "Sys" + key;
+				systemSprite.push(sprite)
+				scene.add(sprite);
+			}
+			$('#StarOS_Loading').hide();
+		},
+
+
+		StarOS_Map.prototype.fallbackInitSectors = function(data){
+			var folder = currentSystem[0] + "_" + currentSystem[1] + "_" + currentSystem[2],
+				folders = [],
+				entFiles = [],
+				i, str;
+				
+			this.logs("Fallback loading sectors");
+			this.loading("Fallback loading sectors from database...");
+			
+			$.ajax({
+				url: "scripts/StarOS_json/Entities/" + folder + "/sectors.json",
+				type: 'GET',
+				async: false,
+				dataType: 'json'
+			})
+			.done(function(json){
+				
+				for(sec in json){
+					folders.push("scripts/StarOS_json/Entities/" + folder + "/" + json[sec] + "/");
+				}
+				
+				for(i = 0; i < folders.length; i++){
+					$.ajax({
+						url: folders[i] + "entities.json",
+						type: 'GET',
+						async: false,
+						dataType: 'json'
+					})
+					.done(function(json){
+						
+						for(fid in json){
+							if(USE_LOGIN){
+								if(fid != 0 && fid != data.fid){
+									delete json[fid];
+								}
+							}
+							
+							if(json[fid] != undefined){
+								if(!SHOW_SHIP || !SHOW_ASTEROID){
+									for(ent in json[fid]){
+										str = json[fid][ent];
+										if(!SHOW_SHIP && str.indexOf("_SHIP_") != -1){
+											delete json[fid][ent];
+										}
+										
+										if(!SHOW_ASTEROID && str.indexOf("_FLOATINGROCK_") != -1){
+											delete json[fid][ent];
+										}
+									}
+								}
+								
+								if(Object.keys(json[fid]).length === 0){
+									delete json[fid];
+								}
+							}
+							
+							for(ent in json[fid]){
+								entFiles.push(folders[i] + json[fid][ent]);
+							}
+						}
+						
+					})
+					.fail(function(result, err_code, err){
+						MAPCLASS.logs("GetJson fallback entities list in " + folders + " " + err);
+					});
+				}
+			})
+			.fail(function(result, err_code, err){
+				MAPCLASS.logs("GetJson fallback sectors list " + err);
+			});
+			
+			this.fallbackLoadEntities(entFiles);
+		},
+
+
+		StarOS_Map.prototype.fallbackLoadEntities = function(entFiles){
 			var system = [],
-				minChunkCoord = [],
-				maxChunkCoord = [],
-				i;
+				entity = {},
+				lPos = {},
+				sPos = {},
+				pos = {},
+				centredPos = {},
+				i, uid;
+
+			this.logs("Fallback loading entities files");
+			this.loading("Fallback loading entities from database...");
 
 			for(i in currentSystem){
-				if(currentSystem[i] >= 0){
-
-					//systeme need to by currentSystem + 1 for chunkCoord calculation
-					system[i] = currentSystem[i] + 1;
-
-					//define coords of minChunkCoord && maxChunkCoord for positif sector pos
-					maxChunkCoord[i] = system[i] * chunkSize -1;
-					minChunkCoord[i] = maxChunkCoord[i] - chunkSize + 1;
-				} 
-				else{
-					system[i] = currentSystem[i];
-
-					//define coords of minChunkCoord && maxChunkCoord for negative sector pos
-					maxChunkCoord[i] = system[i] * chunkSize;
-					minChunkCoord[i] = maxChunkCoord[i] + chunkSize -1;
+				system[i] = currentSystem[i];
+				if(system[i] >= 0){
+					system[i] = currentSystem[i] +1;
 				}
 			}
-			for(i in entDictionary){
-				if(entDictionary[i].sPos.x.between(minChunkCoord[0],maxChunkCoord[0])){
-					if(entDictionary[i].sPos.y.between(minChunkCoord[1],maxChunkCoord[1])){
-						if(entDictionary[i].sPos.z.between(minChunkCoord[2],maxChunkCoord[2])){
 
-							lPos = entDictionary[i].localPos;
-							sPos = {
-								x: Math.floor(entDictionary[i].sPos.x / system[0]),
-								y: Math.floor(entDictionary[i].sPos.y / system[1]),
-								z: Math.floor(entDictionary[i].sPos.z / system[2])
-							}
-
-							pos = {
-								x: sectorSize * sPos.x + sectorSize /2 + lPos.x,
-								y: sectorSize * sPos.y + sectorSize /2 + lPos.y,
-								z: sectorSize * sPos.z + sectorSize /2 + lPos.z,
-							}
-
-							centredPos = {
-								x: pos.x - (sectorSize * chunkSize)/2,
-								y: pos.y - (sectorSize * chunkSize)/2,
-								z: pos.z - (sectorSize * chunkSize)/2
-							}
-
-							entity = {};
-							entity.position = {};
-							entity.sector = {};
-							entity.creator	= entDictionary[i].creator;
-							entity.fid		= entDictionary[i].fid;
-							entity.genId	= entDictionary[i].genId;
-							entity.lastMod	= entDictionary[i].lastMod;
-							entity.mass		= entDictionary[i].mass;
-							entity.name		= entDictionary[i].name;
-							entity.position.x = centredPos.x;
-							entity.position.y = centredPos.y;
-							entity.position.z = centredPos.z;
-							entity.power	= entDictionary[i].pw;
-							entity.sector.x	= entDictionary[i].sPos.x;
-							entity.sector.y	= entDictionary[i].sPos.y;
-							entity.sector.z	= entDictionary[i].sPos.z;
-							entity.shield	= entDictionary[i].sh;
-							entity.type		= entDictionary[i].type;
-							entity.uid		= entDictionary[i].uid;
-							chunk.push(entity);			
-						}
+			for(i = 0; i < entFiles.length; i++){
+				$.ajax({
+					url: entFiles[i],
+					type: 'GET',
+					async: false,
+					dataType: 'json'
+				})
+				.done(function(json){
+					uid = Object.keys(json)[0];
+		
+					sPos = {
+						x: json[uid].transformable.sPos.x / system[0],
+						y: json[uid].transformable.sPos.y / system[1],
+						z: json[uid].transformable.sPos.z / system[2]
+					};
+										
+					pos = {
+						x: sectorSize * sPos.x + sectorSize /2 + json[uid].transformable.localPos.x,
+						y: sectorSize * sPos.y + sectorSize /2 + json[uid].transformable.localPos.y,
+						z: sectorSize * sPos.z + sectorSize /2 + json[uid].transformable.localPos.z,
+					};
+				
+					centredPos = {
+						x: pos.x - (sectorSize * chunkSize)/2,
+						y: pos.y - (sectorSize * chunkSize)/2,
+						z: pos.z - (sectorSize * chunkSize)/2
+					};
+					
+					entity = {
+						creator: json[uid].creatorId.creator,
+						fid: json[uid].transformable.fid,
+						genId: json[uid].creatorId.genId,
+						lastMod: json[uid].creatorId.lastMod,
+						mass: json[uid].transformable.mass.toFixed(1),
+						name: json[uid].transformable.realname,
+						position: centredPos,
+						power: Math.round((json[uid].container != undefined)? json[uid].container.power : 0),
+						sector: json[uid].transformable.sPos,
+						shield: (json[uid].container != undefined)? json[uid].container.shield : 0,
+						type: json[uid].type,
+						uid: uid
 					}
-				}
+					
+					chunks.push(entity);
+				})
+				.fail(function(result, err_code, err){
+					MAPCLASS.logs("GetJson fallback entity file" + folders[i] + " " + err);
+				});
 			}
 
 			this.renderChunk();
 		},
-
-
-		StarOS_Map.prototype.unloadChunk = function(){
-
-			if(DEBUG){console.debug("Remove actual entities...");}
-
-			for(i in chunk){
-				scene.remove(chunkSprite[i].sprite);
+		
+		
+		StarOS_Map.prototype.unloadSprite = function(array){
+			this.logs("Unload objects...");
+			for(i = 0; i < array.length; i++){
+				scene.remove(array[i]);
 			}
-
-			chunk = [];
-			chunkSprite = [];
-			chunkEnt= {};
+			return array = [];
 		},
 
 
-		StarOS_Map.prototype.updateChunk = function(){
-			if(window.Worker && !FALLBACK){
-
-				if(DEBUG){console.debug("Initialize worker chunkLoader.js...");}
-
-				var data = {};
-				chunkLoader = new Worker("scripts/StarOS_Map/chunkLoader.js");
-				chunkLoader.onmessage = function(event){
-					MAPCLASS.parseWorker(event);
-				};
-
-				data.entDictionary = entDictionary;
-				data.currentSystem = currentSystem;
-				data.chunkSize = chunkSize;
-				data.sectorSize = sectorSize;
-
-				chunkLoader.postMessage({
-					type: 'loadChunk',
-					value: data
-				});
-			}
-			else{
-				this.fallbackLoadChunk()
-			}
-		}
-
-
 		StarOS_Map.prototype.renderChunk = function(){
-			var i = 0;
+			var i = 0,
+				material, sprite, texture;
+			
+			this.logs("Render chunk...");
+			this.logs("calculate " + (chunks.length + 1) +" entities");
 
-			console.debug("Render chunk...");
-			console.debug("calculate " + chunk.length + " entities");
-
-			for(i; i < chunk.length; i++){
+			for(i; i < chunks.length; i++){
 				entity = new StarmapEntity();
-				entity.creator	= chunk[i].creator;
-				entity.fid		= chunk[i].fid;
-				entity.genId	= chunk[i].genId;
-				entity.lastMod	= chunk[i].lastMod;
-				entity.mass		= chunk[i].mass;
-				entity.name		= chunk[i].name;
-				entity.position = chunk[i].position;
-				entity.power	= chunk[i].power;
-				entity.sector   = chunk[i].sector;
-				entity.shield	= chunk[i].shield;
-				entity.type		= chunk[i].type;
-				entity.uid		= chunk[i].uid;
+				entity.creator	= chunks[i].creator;
+				entity.fid		= chunks[i].fid;
+				entity.genId	= chunks[i].genId;
+				entity.lastMod	= chunks[i].lastMod;
+				entity.mass		= chunks[i].mass;
+				entity.name		= chunks[i].name;
+				entity.position = chunks[i].position;
+				entity.power	= chunks[i].power;
+				entity.sector   = chunks[i].sector;
+				entity.shield	= chunks[i].shield;
+				entity.type		= chunks[i].type;
+				entity.uid		= chunks[i].uid;
 				entity.init();
-
+				
 				entity.generate(camera, scene);
 				chunkEnt[entity.uid] = entity;
-				chunkSprite.push(entity);
+				chunkSprite.push(entity.sprite);
 			}
 
+			if(chunks.length == 0){
+				$('#StarOS_Empty').show();
+				$('#empty-text').html("Everything that is not part of your faction is hidden");
+			}
+			texture = THREE.ImageUtils.loadTexture("res/img/starmap/icons/disc.png");
+
+			material = new THREE.SpriteMaterial({
+				map: texture,
+				useScreenCoordinates: false,
+				color: 0xffffff
+			});
+			material.color.setHSL(0.12, 0.75, 0.5 );
+			
+			sprite = new THREE.Sprite(material);
+			sprite.position = {
+				x: 0,
+				y: 0,
+				z: 0
+			};
+				
+			sprite.scale.set(500, 500, 1.0)
+			sprite.StarOS_uid = "Sun";
+			chunkSprite.push(sprite)
+			scene.add(sprite);
+			
 			this.render;
+			$('#StarOS_backBtn').toggle();
+			$('#StarOS_Loading').hide();
 		},
 
 
@@ -507,6 +552,32 @@ var StarOS_Map = function(options){
 
 
 		StarOS_Map.prototype.update = function(){
+			var vector, ray, intersect, uid;
+
+			vector = new THREE.Vector3(mouseMove.x, mouseMove.y, 0.5);
+			projector.unprojectVector(vector, camera);
+			ray = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+			intersect = ray.intersectObjects(scene.children);
+
+			if(intersect.length > 0 && intersect[0].object.StarOS_uid){
+				uid = intersect[0].object.StarOS_uid;
+
+				if(uid.indexOf("Sys") != -1){
+
+					uid = uid.replace("Sys", '');
+					str = systemDict[uid].x + ", " + systemDict[uid].y + ", " + systemDict[uid].z;
+					$('#StarOS_object-coords').html(str);
+					$('#StarOS_object-coords').show();
+				}
+				else{
+					$('#StarOS_object-coords').html();
+					$('#StarOS_object-coords').hide();
+				}
+			}
+			else{
+				$('#StarOS_object-coords').html();
+				$('#StarOS_object-coords').hide();
+			}
 			
 			controls.update();
 
@@ -515,7 +586,7 @@ var StarOS_Map = function(options){
 			}
 
 			if (keyboard.pressed("space")){
-				camera.position.set(sectorSize, sectorSize, sectorSize);
+				camera.position.set(sectorSize * 4, sectorSize * 4, sectorSize * 4);
 			}
 
 			if(DEBUG){
@@ -532,7 +603,8 @@ var StarOS_Map = function(options){
 		
 
 		StarOS_Map.prototype.setupEvent = function(){
-			$button = $('#mapInfoButton');
+			var $button = $('#mapInfoButton'),
+				$back 	= $('#StarOS_backBtn');
 
 			// EVENTS
 			$(document).mousemove(MAPCLASS.onMouseMove);
@@ -540,16 +612,30 @@ var StarOS_Map = function(options){
 			$(window).resize(function(){
 				MAPCLASS.updateDomElem();
 			});
+
 			$button.click(function(){
-				$('#mapInfo').toggle();
-				if(this.showInfo){
-					$('#mapInfoButton').css('background-image', 'url(res/img/starmap/buttonUnroll.png)');
-					showInfo = false;
-				} else {
-					$('#mapInfoButton').css('background-image', 'url(res/img/starmap/buttonRoll.png)');
-					showInfo = true;
+				if(!$('#mapInfo').is(':empty')){
+					$('#mapInfo').toggle();
+					if(showInfo){
+						$('#mapInfoButton').css('background-position', '0px -20px');
+						showInfo = false;
+					} else {
+						$('#mapInfoButton').css('background-position', '0px 0px');
+						showInfo = true;
+					}
 				}
 			});
+
+			$back.click(function(){
+				chunkSprite = MAPCLASS.unloadSprite(chunkSprite);
+				chunks = [];
+				chunkEnt= {};
+
+				MAPCLASS.renderSystem();
+				$('#StarOS_Empty').hide();
+				$(this).toggle();
+			});
+
 			THREEx.FullScreen.bindKey({
 				charCode: FS_KEY.charCodeAt(0)
 			});
@@ -563,23 +649,42 @@ var StarOS_Map = function(options){
 				stats.domElement.id = "Debugs_stats";
 				$parent.append(stats.domElement);
 
+				//Back putton pos
+				$back.css({
+					'top': $(Debugs_stats).offset().top + $(Debugs_stats).height() + "px"
+				})
 				//COORDS LABELS
+				$divCoords = $('<div id="CoordBox"/>');
 				$coordX = $('<label id="CoordX"/>');
 				$coordY = $('<label id="CoordY"/>');
 				$coordX.text("x: 0");
 				$coordY.text("y: 0");
+				$divCoords.css({
+					'background-color': 'rgb(8, 8, 24)',
+					'position': 'absolute',
+					'left': '0px',
+					'bottom': '0px',
+					'margin': '0px',
+					'padding': '0px',
+					'height': '40px',
+					'width': '210px'
+				});
+
 				$coordX.css({
 					'position': 'absolute',
-					'left': '0px',
-					'bottom': '15px'
+					'left': '5px',
+					'bottom': '20px'
 				});
+
 				$coordY.css({
 					'position': 'absolute',
-					'left': '0px',
-					'bottom': '0px'
+					'left': '5px',
+					'bottom': '5px'
 				});
-				$parent.append($coordX);
-				$parent.append($coordY);
+
+				$divCoords.append($coordX);
+				$divCoords.append($coordY);
+				$parent.append($divCoords);
 			}
 
 		},
@@ -607,9 +712,36 @@ var StarOS_Map = function(options){
 			ray = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
 			intersect = ray.intersectObjects(scene.children);
 
-			if(intersect.length > 0 && intersect[0].object.uid){
-				uid = intersect[0].object.uid;
-				MAPCLASS.entityMapInfo(chunkEnt[uid]);
+			if(intersect.length > 0 && intersect[0].object.StarOS_uid){
+				uid = intersect[0].object.StarOS_uid;
+
+				if(uid.indexOf("Sys") != -1){
+
+					uid = uid.replace("Sys", '');
+					currentSystem = [systemDict[uid].x, systemDict[uid].y, systemDict[uid].z];
+
+					var data ={};
+					data.currentSystem = currentSystem;
+					data.showShip = SHOW_SHIP;
+					data.showAsteroid = SHOW_ASTEROID;
+					data.useLogin = USE_LOGIN;
+					data.currentSystem = currentSystem;
+					data.chunkSize = chunkSize;
+					data.sectorSize = sectorSize;
+					data.fid = 0;
+
+					if(user.fid != undefined){
+						data.fid = user.fid;
+					}
+
+					systemSprite = MAPCLASS.unloadSprite(systemSprite);
+					MAPCLASS.initWorker('initSectors', data);
+				}
+				else if(uid.indexOf("Sun") != -1){
+				}
+				else{
+					MAPCLASS.entityMapInfo(chunkEnt[uid]);
+				}
 			}
 		},
 
@@ -656,10 +788,7 @@ var StarOS_Map = function(options){
 							_SESSION = data;
 							if(_SESSION.user != undefined){
 
-								if(DEBUG){
-									console.debug("Logged!");
-									console.debug(_SESSION);
-								}
+								MAPCLASS.logs("Logged!", _SESSION);
 
 								logged = true;
 								$connect.css('background-position', '-104px 0px');
@@ -667,18 +796,18 @@ var StarOS_Map = function(options){
 								$userIn.css('visibility', 'hidden');
 								$pass.css('visibility', 'hidden');
 								$passIn.css('visibility', 'hidden');
-								MAPCLASS.retrievingPlayer();
+								MAPCLASS.getPlayer();
 								MAPCLASS.reinitChunk();
 
 							} else {
 
-								console.debug(data);
+								MAPCLASS.logs(data);
 								alert("Bad login");
 
 							}
 						})
 						.fail(function(result, err_code, err){
-							if(DEBUG){console.debug("JQXHR_log " + err);}
+							MAPCLASS.logs("JQXHR_log " + err);
 						});
 
 					}
@@ -695,10 +824,7 @@ var StarOS_Map = function(options){
 						dataType: 'json'
 					})
 					.done(function(data){
-						if(DEBUG){
-							console.debug("logout");
-							console.debug(_SESSION);
-						}
+						MAPCLASS.logs("logout");
 
 						logged = false;
 						_SESSION = data;
@@ -710,7 +836,7 @@ var StarOS_Map = function(options){
 						MAPCLASS.reinitChunk();
 					})
 					.fail(function(result, err_code, err){
-						if(DEBUG){console.debug("JQXHR_logout " + err);}
+						MAPCLASS.logs("JQXHR_logout " + err);
 						alert("Error: impossible to disconnect.");
 					});
 
@@ -723,7 +849,7 @@ var StarOS_Map = function(options){
 				$userIn.css('visibility', 'hidden');
 				$pass.css('visibility', 'hidden');
 				$passIn.css('visibility', 'hidden');
-				this.retrievingPlayer();
+				this.getPlayer();
 			}
 
 			$form.append($user);
@@ -737,10 +863,7 @@ var StarOS_Map = function(options){
 
 
 		StarOS_Map.prototype.entityMapInfo = function(entity){
-			if(DEBUG){
-				console.debug("Show entity info:");
-				console.debug(entity);
-			}
+			this.logs("Show entity info", entity)
 			
 			var $mapInfo = $('#mapInfo'),
 				$img = $('<img id="mapInfPic" class="mapInfo"/>'),
@@ -768,6 +891,8 @@ var StarOS_Map = function(options){
 
 
 			$mapInfo.empty();
+			$('#mapInfoButton').css('background-position', '0px 0px');
+			showInfo = true;
 			$mapInfo.show();
 
 			$img = $('<img id="mapInfPic" class="mapInfo"/>');
@@ -794,20 +919,22 @@ var StarOS_Map = function(options){
 			mapInfoHeight += $name.height();
 			mapInfoHeight += offsetSepar;
 
-			$type.text("Type: " + entity.typeLabel);
-			$mapInfo.append($type);
-			$type.css("top", mapInfoHeight + "px");
+			if(entity.type == 4){
+				$type.text("Type: " + entity.typeLabel);
+				$mapInfo.append($type);
+				$type.css("top", mapInfoHeight + "px");
 
-			mapInfoHeight += $type.height();
-			mapInfoHeight += offsetTop;
+				mapInfoHeight += $type.height();
+				mapInfoHeight += offsetTop;
+			}
 
 			$pos.text("Sector: " + entity.sector.x + ", " + entity.sector.y + ", " + entity.sector.z);
 			$mapInfo.append($pos);
 			$pos.css("top", mapInfoHeight + "px");
 
-			mapInfoHeight += $type.height();
+			mapInfoHeight += $pos.height();
 
-			if(faction){
+			if(faction && entity.fid != 0){
 				mapInfoHeight += offsetTop;
 
 				for(i in facDictionary){
@@ -825,11 +952,15 @@ var StarOS_Map = function(options){
 				mapInfoHeight += offsetTop;
 			}
 
-
 			if(mass || power || shield){
 				mapInfoHeight += offsetSepar;
 				if(mass){
-					$mass.text("Mass: " + entity.mass);
+					if(entity.mass == 0){
+						$mass.text("Mass: Unknown");
+					}
+					else{
+						$mass.text("Mass: " + entity.mass);
+					}
 					$mapInfo.append($mass);
 					$mass.css("top", mapInfoHeight + "px");
 
@@ -838,15 +969,22 @@ var StarOS_Map = function(options){
 				}
 
 				if(power){
-					$pow.text("Max power: " + entity.power);
-					$mapInfo.append($pow);
-					$pow.css("top", mapInfoHeight + "px");
-
-					mapInfoHeight += $pow.height();
-					mapInfoHeight += offsetTop;
+					if(entity.type != 1 && entity.type != 3){
+						if(entity.power == 0){
+							$pow.text("Max power: Unknown");
+						}
+						else{
+							$pow.text("Max power: " + entity.power);
+						}
+						$mapInfo.append($pow);
+						$pow.css("top", mapInfoHeight + "px");
+	
+						mapInfoHeight += $pow.height();
+						mapInfoHeight += offsetTop;
+					}
 				}
 
-				if(shield){
+				if(shield && entity.shield != 0){
 					$sh.text("Max shield: " + entity.shield);
 					$mapInfo.append($sh);
 					$sh.css("top", mapInfoHeight + "px");
@@ -861,7 +999,8 @@ var StarOS_Map = function(options){
 					mapInfoHeight += $shRate.height();
 					mapInfoHeight += offsetTop;
 				}
-			} else {
+			}
+			else {
 				mapInfoHeight += offsetTop;
 			}
 
@@ -869,49 +1008,6 @@ var StarOS_Map = function(options){
 			mapInfoHeight -= offsetTop;
 			$border.css("top", mapInfoHeight + "px");
 			$mapInfo.height(mapInfoHeight);
-		},
-
-
-		StarOS_Map.prototype.systemSelector = function(){
-			var $parent = $('#sysSelect');
-				$xField = $('<input type="text" id="sysSelectFX"/>'),
-				$yField = $('<input type="text" id="sysSelectFY"/>'),
-				$zField = $('<input type="text" id="sysSelectFZ"/>'),
-				$button = $('<input type="submit" id="sysSelectBtn"/>');
-
-			$xField.val("0");
-			$yField.val("0");
-			$zField.val("0");
-			$button.val("Search");
-
-			$xField.keyup(function () { 
-				this.value = this.value.replace(/[^0-9\.-]/g,'');
-			});
-			$yField.keyup(function () { 
-				this.value = this.value.replace(/[^0-9\.-]/g,'');
-			});;
-			$zField.keyup(function () { 
-				this.value = this.value.replace(/[^0-9\.-]/g,'');
-			});
-
-			$button.click(function(e){
-				e.preventDefault();
-				$xField.val() == "" ? $xField.val(0) : $xField.val();
-				$yField.val() == "" ? $yField.val(0) : $xField.val();
-				$zField.val() == "" ? $zField.val(0) : $xField.val();
-
-				currentSystem[0] = parseInt($xField.val());
-				currentSystem[1] = parseInt($yField.val());
-				currentSystem[2] = parseInt($zField.val());
-
-				MAPCLASS.unloadChunk();
-				MAPCLASS.updateChunk();
-			});
-
-			$parent.append($xField);
-			$parent.append($yField);
-			$parent.append($zField);
-			$parent.append($button);
 		},
 
 
@@ -947,35 +1043,47 @@ var StarOS_Map = function(options){
 		StarOS_Map.prototype.parseWorker = function(event){
 			var data = event.data;
 
-			if(data.type === 'debug' && DEBUG){
-				if(data.object){
-					console.debug(data.object);
-				}
-
-				console.debug(data.value);
-
+			switch(data.type){
+				case 'debug':
+					this.logs(data.value, data.data, data.source);
+					break;
+					
+				case 'renderSystem':
+					systemDict = data.value;
+					this.renderSystem();
+					break;
+					
+				case 'renderChunk':
+					chunks = data.value;
+					this.renderChunk();
+					break;
+					
+				case 'load':
+					this.loading(data.value);
+					break;
+					
+				default:
+					this.logs("Invalide worker's data type -> " + data.type);
+					break;
 			}
-			else if(data.type === 'entDic'){
-				if(DEBUG){
-					console.debug(data.value);
-					console.debug(data.object);
-				}
-
-				entDictionary = data.object;
-
-			}
-			else if(data.type === 'chunk'){
-				if(DEBUG){
-					console.debug(data.value);
-					console.debug(data.object);
-				}
-
-				chunk = data.object;
-				MAPCLASS.renderChunk();
-			}
-
 		},
 
+
+		StarOS_Map.prototype.loading = function(string){
+			$('#StarOS_Loading').show();
+			$('#loading-text').html(string);
+		},
+
+
+		StarOS_Map.prototype.logs = function( string, data, source){
+			filesource = source || "StarOS_Map.js"
+			if(DEBUG){
+				console.debug(filesource + ": \"" + string + "\"");
+				if(data != undefined){
+					console.debug(data);
+				}
+			}
+		},
 
 		this.init()
 	}

@@ -56,6 +56,7 @@
 			background: url(../../res/img/starmap/btn_login.png);
 			background-position: 0px 0px;
 			border: none;
+   			outline:none;
 			width: 104px;
 			height: 44px;
 			right: 0px;
@@ -64,6 +65,7 @@
 		
 		#StarOS_ConnectBtn:hover{
 			border: none;
+   			outline:none;
 		}
 		
 		#StarOS_PassInput, #StarOS_UserInput{

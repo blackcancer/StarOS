@@ -35,11 +35,15 @@
 				</div>
 				<div id="mapInfoButton"><label id="mapInfLabel">Informations:</label></div>
 				<div id="mapInfo" style="display:none"></div>
-				<div id="sysSelect">
-					<label id="sysSelectLX">x: </label>
-					<label id="sysSelectLY">y: </label>
-					<label id="sysSelectLZ">z: </label>
+				<input type="submit" id="StarOS_backBtn" value="<< back" style="display:none"/>
+				<div id="StarOS_Loading" style="display: none;">
+					<img src="res/img/starmap/loader.gif"/>
+					<span id="loading-text"></span>
 				</div>
+				<div id="StarOS_Empty" style="display: none;">
+					<span id="empty-text"></span>
+				</div>
+				<div id="StarOS_object-coords" style="display:none"></div>
 			</div>
 			<div id="starmap_borderR"></div>
 			<div id="starmap_cornerLB"></div>
@@ -68,7 +72,7 @@
 			$(document).ready(function(){
 				starmap = new StarOS_Map({
 					parentId: 'starmap',
-					debug: false,
+					debug: true,
 					showShip: true,
 					showAsteroid: true,
 					useLogin: true,
