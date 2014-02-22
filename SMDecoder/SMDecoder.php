@@ -4,7 +4,8 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00001						Date: 2014-01-03
+		FileVersion: 0.6-rev00003						Date: 2014-01-03
+		SM-Version: dev build 0.107
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -21,6 +22,7 @@
 	define("NULL64", "0000000000000000000000000000000000000000000000000000000000000000");
 	define("NULLFLOAT", 0.0);
 	
+	define("TAG_FINISH", 		chr(0));
 	define("TAG_STR_BYTE", 		chr(1));
 	define("TAG_STR_SHORT", 	chr(2));
 	define("TAG_STR_INT", 		chr(3));
@@ -36,6 +38,7 @@
 	define("TAG_STR_STRUCT",	chr(13));
 	define("TAG_STR_SERIAL",	chr(14));
 	
+	define("TAG_UNK",			chr(241));		//added to dev 0.107 bit length: 136
 	define("TAG_ARRAYDATA",		chr(243));
 	define("TAG_INT3",			chr(246));
 	define("TAG_STRING",		chr(248));
@@ -135,20 +138,19 @@
 					die("Unknown file format");
 			}
 			fclose($this->stream);
-			return $ent;
+			return $this->convertArrayToUtf8($ent);
 		}
 
 
 		//============================= Main Decoder =============================//
-
 		private function mainDecoder(){
 			$data = array();
 			$data['short_a'] = $this->readInt16();
-			$type = $this->readByte();
+			$tag = $this->readByte();
 
-			while($type != ''){
+			while($tag != ''){
 				
-				$resp = $this->parseTag($type);
+				$resp = $this->parseTag($tag);
 				
 				if(isset($resp['name'])){
 					$data[$resp['name']] = $resp['data'];
@@ -157,7 +159,7 @@
 					array_push($data, $resp);
 				}
 
-				$type = $this->readByte();
+				$tag = $this->readByte();
 			}
 
 			return $data;
@@ -165,7 +167,6 @@
 
 
 		//============================= Entity Decoder  =============================//
-
 		private function getEntType($file){
 
 			if(strpos($file, 'SHOP') !== false){
@@ -189,7 +190,6 @@
 
 
 		//============================= Header Decoder  =============================//
-
 		private function decodeHeader(){
 			/*
 				start	type
@@ -224,7 +224,6 @@
 
 
 		//============================= Logic Decoder   =============================//
-
 		private function decodeLogic($fileSize){
 			/*  
 			start   type
@@ -295,7 +294,6 @@
 
 
 		//============================= Meta Decoder    =============================//
-
 		private function decodeMeta($fileSize){
 			/*
 			start     type
@@ -341,7 +339,7 @@
 				for($i = 0; $i < $numDocked; $i++){
 					$name = $this->readString();
 					$q = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					$a = array($this->bin2Float(),$this-> bin2Float(), $this->bin2Float());
+					$a = array($this->readFloat(), $this->readFloat(), $this->readFloat());
 					$docking = $this->readInt16();
 
 					$arr = array(
@@ -377,7 +375,6 @@
 
 
 		//============================= Modele Decoder  =============================//
-
 		private function decodeModel($fileSize){
 
 			/*
@@ -490,12 +487,11 @@
 				array_push($data['chunks'], $chunkDict);
 			}
 
-			return $data;			
+			return $data;
 		}
 
 
 		//===========================================================================//
-
 		public function checkServ($host, $port){
 
 			$packet = pack("N", 9).pack("c", 42).pack("n", -1).pack("c", 1).pack("c", 111).pack("N", 0);
@@ -559,12 +555,12 @@
 
 
 		//================================ Tag Parser ===============================//
-
 		private function parseTag($type){
 			$data = null;
 			$listName = array(
 				"AIElement",
 				"wepContr",
+				"PointDist",
 				"inventory",
 				"f0",
 				"0FN",
@@ -640,7 +636,7 @@
 					$data['data'] = array();
 					$next = $this->readByte();
 					$len = $this->readInt32();
-					
+
 					for($i = 0; $i < $len; $i++){
 						array_push($data['data'], $this->parseList($next));
 					}
@@ -652,7 +648,7 @@
 					$data['data'] = array();
 					$next = $this->readByte();
 					$i = 0;
-					while($next != chr(0)){
+					while($next != TAG_FINISH){
 
 						$resp = $this->parseTag($next);
 
@@ -690,11 +686,15 @@
 
 					break;
 
+				case TAG_UNK:
+					$data = $this->readBytes(16);
+					break;
+
 				case TAG_ARRAYDATA:
 					$data = array();
 					$next = $this->readByte();
 					$i = 0;
-					while($next != chr(0)){
+					while($next != TAG_FINISH){
 
 						$resp = $this->parseTag($next);
 
@@ -737,6 +737,7 @@
 					$data = $this->readFloat();
 					break;
 
+
 				case TAG_LONG:
 					$data = $this->readInt64();
 					break;
@@ -754,7 +755,7 @@
 					break;
 
 				default:
-					echo 'Warning: Unrecognized tag type '. dechex(ord($type));
+					echo 'Warning: Unrecognized tag type in parseTag -> '. dechex(ord($type)). chr(13).chr(10);
 					break;
 			}
 
@@ -816,7 +817,7 @@
 					break;
 
 				default:
-					echo 'Warning: Unrecognized tag type '. dechex(ord($type));
+					echo 'Warning: Unrecognized tag type  in parseList -> '. dechex(ord($type)). chr(13).chr(10);
 					break;
 			}
 
@@ -825,461 +826,511 @@
 
 
 		//============================= Object Formater =============================//
-
 		private function formatCat($ent){
-			$data = array();
-			$ships = $ent['cv0']['pv0'];
-			$rateList = $ent['cv0']['r0'];
+			$data		= array();
+			$ships		= $ent['cv0']['pv0'];
+			$rateList	= $ent['cv0']['r0'];
 
 			for($i = 0; $i < count($ships); $i++){
-				$name = $ships[$i][0];
-				$creat = $ships[$i][1];
-				$shipPerm = $ships[$i][2];
-				$price = $ships[$i][3];
-				$desc = $ships[$i][4];
+				$name		= $ships[$i][0];
+				$shipPerm	= $ships[$i][2];
 
-				switch($shipPerm){
-					case 0:
-						$perm['faction'] = false;
-						$perm['other'] = false;
-						$perm['homeBase'] = false;
-						break;
-					case 1:
+				$shipPerm	= sprintf("%08d", decbin($shipPerm));
+				$shipPerm	= chunk_split($shipPerm, 1);
+				
+				$perm = array(
+					'faction'	=> ($shipPerm[8] == '1')? true : false,
+					'other'		=> ($shipPerm[7] == '1')? true : false,
+					'homeBase'	=> ($shipPerm[6] == '1')? true : false
+				);
 
-						$perm['faction'] = true;
-						$perm['other'] = false;
-						$perm['homeBase'] = false;
-						break;
-					case 2:
+				$data[$name] = array(
+					'creator'		=> $ships[$i][1],
+					'permission'	=> $perm,
+					'price'			=> $ships[$i][3],
+					'description'	=> $ships[$i][4]
+				);
 
-						$perm['faction'] = false;
-						$perm['other'] = true;
-						$perm['homeBase'] = false;
-						break;
-					case 3:
-
-						$perm['faction'] = true;
-						$perm['other'] = true;
-						$perm['homeBase'] = false;
-						break;
-					case 4:
-
-						$perm['faction'] = false;
-						$perm['other'] = false;
-						$perm['homeBase'] = true;
-						break;
-					case 5:
-
-						$perm['faction'] = true;
-						$perm['other'] = false;
-						$perm['homeBase'] = true;
-						break;
-					case 6:
-
-						$perm['faction'] = false;
-						$perm['other'] = true;
-						$perm['homeBase'] = true;
-						break;
-
-					case 7:
-						$perm['faction'] = true;
-						$perm['other'] = true;
-						$perm['homeBase'] = true;
-						break;
-
-					case 26:
-						$perm['faction'] = false;
-						$perm['other'] = true;
-						$perm['homeBase'] = false;
-						break;
-
-					default:
-						$perm['faction'] = false;
-						$perm['other'] = true;
-						$perm['homeBase'] = false;
-						break;
-				}
-
-				$data[$name]['creator'] = $creat;
-				$data[$name]['permission'] = $perm;
-				$data[$name]['price'] = $price;
-				$data[$name]['description'] = $desc;
 				if(isset($rateList[$name])){
-					$data[$name]['rate'] = $rateList[$name];
+					$data[$name]['rate']	= $rateList[$name];
 				}
+
 			}
-			
+
 			return $data;
 		}
 
 		private function formatFac($ent){
-			$data = array();
-			$factions = $ent['factions-v0'][0];
-			$NStruct = $ent['factions-v0']['NStruct'];
-			$news = array();
+			$data		= array();
+			$factions	= $ent['factions-v0'][0];
+			$NStruct	= $ent['factions-v0']['NStruct'];
+			$news		= array();
 
 			foreach($NStruct as $key => $val){
 				if(is_array($NStruct[$key])){
-					foreach($NStruct[$key] as $key2 => $val2){
-						$dt = (string)$NStruct[$key][$key2]['dt'];
-						$id = $NStruct[$key][$key2]['id'];
-						$op = $NStruct[$key][$key2]['op'];
-						$msg = $NStruct[$key][$key2]['msg'];
-						$perm = $NStruct[$key][$key2]['perm'];
 
-						$news[$dt]['fid'] = $id;
-						$news[$dt]['author'] = $op;
-						$news[$dt]['msg'] = $msg;
-						$news[$dt]['perm'] = $perm;
+					foreach($NStruct[$key] as $key2 => $val2){
+						$dt		= (string)$NStruct[$key][$key2]['dt'];
+
+						$news[$dt] = array(
+							'fid'		=> $NStruct[$key][$key2]['id'],
+							'author'	=> $NStruct[$key][$key2]['op'],
+							'msg'		=> $NStruct[$key][$key2]['msg'],
+							'perm'		=> $NStruct[$key][$key2]['perm'],
+						);
+
 					}
+
 				}
 			}
 
 			foreach($factions as $key => $val){
 				$id = $factions[$key]['id'];
-				$data[$id]['uid'] = $factions[$key][0];
-				$data[$id]['name'] = $factions[$key][1];
-				$data[$id]['description'] = $factions[$key][2];
+
+				$data[$id]['uid']			= $factions[$key][0];
+				$data[$id]['name']			= $factions[$key][1];
+				$data[$id]['description']	= $factions[$key][2];
+				$data[$id]['ranks']			= array();
 
 				for($j = 0; $j < count($factions[$key]['mem']); $j++){
-					$player = $factions[$key]['mem'][$j][0];
-					$rank = $factions[$key]['mem'][$j][1];
+					$player	= $factions[$key]['mem'][$j][0];
+					$rank	= $factions[$key]['mem'][$j][1];
+
 					$data[$id]['member'][$player] = $rank;
 				}
 
-				$data[$id]['ranks'] = array();
+				//Populate $data[$id]['ranks']
 				for($j = 0; $j < count($factions[$key]['00'][2]); $j++){
 					$arr['name'] = $factions[$key]['00'][2][$j];
-					$prem = $factions[$key]['00'][1][$j];
-					switch($prem){
-						case 0:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = false;
-							break;
 
-						case 1:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = false;
-							break;
+					$perm = $factions[$key]['00'][1][$j];
+					$perm = sprintf("%08d", decbin($perm));
+					$perm = chunk_split($perm, 1);
 
-						case 2:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = false;
-							break;
+					$arr['perm'] = array(
+						'edit'				=> ($perm[8] == '1')? true : false,
+						'kick'				=> ($perm[7] == '1')? true : false,
+						'invite'			=> ($perm[6] == '1')? true : false,
+						'permission-edit'	=> ($perm[5] == '1')? true : false
+					);
 
-						case 3:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = false;
-							break;
-
-						case 4:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = false;
-							break;
-
-						case 5:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = false;
-							break;
-
-						case 6:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = false;
-							break;
-
-						case 7:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = false;
-							break;
-
-						case 8:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 9:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 10:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 11:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 12:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 13:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 14:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 15:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						case 2047:
-							$arr['perm']['edit'] = true;
-							$arr['perm']['kick'] = true;
-							$arr['perm']['invite'] = true;
-							$arr['perm']['permission-edit'] = true;
-							break;
-
-						default:
-							$arr['perm']['edit'] = false;
-							$arr['perm']['kick'] = false;
-							$arr['perm']['invite'] = false;
-							$arr['perm']['permission-edit'] = false;
-							break;
-					}
 					array_push($data[$id]['ranks'], $arr);
 				}
 
-				$data[$id]['home']['uid'] = $factions[$key]['home'];
-				$data[$id]['home']['sector']['x'] = $factions[$key][5][0];
-				$data[$id]['home']['sector']['y'] = $factions[$key][5][1];
-				$data[$id]['home']['sector']['z'] = $factions[$key][5][2];
-				$data[$id]['pw'] = $factions[$key]['pw'];
-				$data[$id]['fn'] = $factions[$key]['fn'];
-				$data[$id]['options']['public'] = ($factions[$key][4] == 1) ? true : false;
-				$data[$id]['options']['warOnHostile'] = ($factions[$key]['aw'] == 1) ? true : false;
-				$data[$id]['options']['NeutralEnemy'] = ($factions[$key]['en'] == 1) ? true : false;
+				$data[$id]['pw']	= $factions[$key]['pw'];
+				$data[$id]['fn']	= $factions[$key]['fn'];
+
+				$data[$id]['home']['uid']		= $factions[$key]['home'];
+				$data[$id]['home']['sector']	= array(
+					'x' => $factions[$key][5][0],
+					'y' => $factions[$key][5][1],
+					'z' => $factions[$key][5][2]
+				);
+
+				$data[$id]['options'] = array(
+					'public'		=> ($factions[$key][4] == 1) ? true : false,
+					'warOnHostile'	=> ($factions[$key]['aw'] == 1) ? true : false,
+					'NeutralEnemy'	=> ($factions[$key]['en'] == 1) ? true : false,
+				);
 
 				foreach($news as $key2 => $val2){
 					if($news[$key2]['fid'] == $id){
-						$data[$id]['news'][$key2]['author'] = $news[$key2]['author'];
-						$data[$id]['news'][$key2]['msg'] = $news[$key2]['msg'];
-						$data[$id]['news'][$key2]['perm'] = $news[$key2]['perm'];
+
+						$data[$id]['news'][$key2] = array(
+							'author'	=> $news[$key2]['author'],
+							'msg'		=> $news[$key2]['msg'],
+							'perm'		=> $news[$key2]['perm'],
+						);
+
 					}
 				}
 			}
-			
+
 			return $data;
 		}
 
 		private function formatShop($ent){
-			$data = array();
 			$sc = $ent['ShopSpaceStation2']['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
 
-			$data[$uid]['type'] = $this->type;
+			//dim part
+			$maxPos = array(
+				'x' => $sc['maxPos'][0],
+				'y' => $sc['maxPos'][1],
+				'z' => $sc['maxPos'][2]
+			);
 
-			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
-			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
-			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+			$minPos = array(
+				'x' => $sc['minPos'][0],
+				'y' => $sc['minPos'][1],
+				'z' => $sc['minPos'][2]
+			);
 
-			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
-			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
-			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+			$dim = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
 
-			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
-			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
-			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
-			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
-			$data[$uid]['dock']['byte_a'] = $sc[0][2];
-			$data[$uid]['dock']['byte_b'] = $sc[0][3];
-			$data[$uid]['dock']['s'] = $sc[0]['s'];
+			//docking part
+			$dockedToPos = array(
+				'x' => $sc[0][1][0],
+				'y' => $sc[0][1][1],
+				'z' => $sc[0][1][2]
+			);
 
-			$data[$uid]['cs1'] = $sc['cs1'];
-			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'];
+			$dock = array(
+				'dockedTo'		=> $sc[0][0],
+				'dockedToPos'	=> $dockedToPos,
+				'byte_a'		=> $sc[0][2],
+				'byte_b'		=> $sc[0][3],
+				's'				=> $sc[0]['s'],
+			);
 
-			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
 
-			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
-			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
-			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
 
-			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
-			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
-			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
 
-			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
-			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
-			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
 
-			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
-			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
-			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
 
-			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'noAI'			=> $sc['transformable']['noAI'],
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
 
-			$data[$uid]['transformable']['noAI'] = $sc['transformable']['noAI'];
-			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
-			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+			//creatoreId part
+			$creatoreId = array(
+				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
+				'lastMod'	=> $sc['2'],
+				'seed'		=> $sc['3'],
+				'touched'	=> ($sc['4'] == 1) ? true : false,
+				'byte_a'	=> $sc['5'],
+				'genId'		=> $sc['creatoreId']
+			);
 
-			$data[$uid]['dummy'] = $sc['dummy'];
+			//inventory part
+			$inv = $ent['ShopSpaceStation2']['inventory0'];
+			$inv['credits'] = $ent['ShopSpaceStation2'][0][4];
 
-			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
-			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
-			$data[$uid]['creatorId']['seed'] = $sc['3'];
-			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
-			$data[$uid]['creatorId']['byte_y'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+			//unk_last part
+			$unk = array(
+				'double_a'	=> $ent['ShopSpaceStation2'][0][0],
+				'byte_a'	=> $ent['ShopSpaceStation2'][0][1],
+				'arrData_a'	=> $ent['ShopSpaceStation2'][0][2],
+				'byte_b'	=> $ent['ShopSpaceStation2'][0][3],
+				'arrData_b'	=> $ent['ShopSpaceStation2'][0][5]
+			);
 
-			$data[$uid]['inventory'] = $ent['ShopSpaceStation2']['inventory0'];
-			$data[$uid]['inventory']['credits'] = $ent['ShopSpaceStation2'][0][4];
 
-			$data[$uid]['unk_last']['double_z'] = $ent['ShopSpaceStation2'][0][0];
-			$data[$uid]['unk_last']['long_z'] = $ent['ShopSpaceStation2'][0][1];
-			$data[$uid]['unk_last']['arrData_y'] = $ent['ShopSpaceStation2'][0][2];
-			$data[$uid]['unk_last']['byte_z'] = $ent['ShopSpaceStation2'][0][3];
-			$data[$uid]['unk_last']['arrData_z'] = $ent['ShopSpaceStation2'][0][5];
+			$data = array(
+				'uniqueId'		=> $uid,
+				'type'			=> $this->type,
+				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'],
+				'dim'			=> $dim,
+				'dock'			=> $dock,
+				'transformable'	=> $transformable,
+				'dummy'			=> $sc['dummy'],
+				'creatorId'		=> $creatoreId,
+				'inventory'		=> $inv,
+				'unk_last'		=> $unk
+			);
 
 			return $data;
 		}
 
 		private function formatStation($ent){
-			$data = array();
 			$sc = $ent['SpaceStation']['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
-			$AIConfig = $sc['transformable']['AIConfig0'];
+			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
 
-			$data[$uid]['type'] = $this->type;
+			//dim part
+			$maxPos = array(
+				'x' => $sc['maxPos'][0],
+				'y' => $sc['maxPos'][1],
+				'z' => $sc['maxPos'][2]
+			);
 
-			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
-			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
-			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+			$minPos = array(
+				'x' => $sc['minPos'][0],
+				'y' => $sc['minPos'][1],
+				'z' => $sc['minPos'][2]
+			);
 
-			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
-			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
-			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+			$dim = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
 
-			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
-			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
-			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
-			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
-			$data[$uid]['dock']['byte_a'] = $sc[0][2];
-			$data[$uid]['dock']['byte_b'] = $sc[0][3];
-			$data[$uid]['dock']['s'] = $sc[0]['s'];
+			//docking part
+			$dockedToPos = array(
+				'x' => $sc[0][1][0],
+				'y' => $sc[0][1][1],
+				'z' => $sc[0][1][2]
+			);
 
-			$data[$uid]['cs1'] = $sc['cs1'];
-			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+			$dock = array(
+				'dockedTo'		=> $sc[0][0],
+				'dockedToPos'	=> $dockedToPos,
+				'byte_a'		=> $sc[0][2],
+				'byte_b'		=> $sc[0][3],
+				's'				=> $sc[0]['s'],
+			);
 
-			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
 
-			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
-			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
-			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
 
-			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
-			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
-			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
 
-			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
-			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
-			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
 
-			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
-			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
-			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
 
-			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+			$ai = array();
+			for($i = 0; $i < count($AIConfig); $i++){
+				$type	= $AIConfig[$i][0];
+				$state	= $AIConfig[$i][1];
+				$ai[$type] = $state;
+			}
 
-			$configType = $AIConfig['AIElement0']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
-			$configType = $AIConfig['AIElement1']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
-			$configType = $AIConfig['AIElement2']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
-			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
-			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'AIConfig'		=> $ai,
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
 
-			$data[$uid]['container'] = array();
-			$data[$uid]['container']['controllerStructure'] = array();
-			$data[$uid]['container']['shipMan0'] = array();
-
+			//contenair part
+			$contStruct = array();
 			$oriController = $sc['container']['controllerStructure'];
 			foreach($oriController as $key => $val){
-				$arr['type'] = $oriController[$key]['type'];
-				$arr['index'] = $oriController[$key]['index'];
-				$arr['inventory'] = $oriController[$key]['inventory0'];
-				array_push($data[$uid]['container']['controllerStructure'], $arr);
+				$arr = array(
+					'type'		=> $oriController[$key]['type'],
+					'index'		=> $oriController[$key]['index'],
+					'inventory'	=> $oriController[$key]['inventory0']
+				);
+				
+				array_push($contStruct, $arr);
 			}
 
+			$shipMan = array();
 			$oriShipMan = $sc['container']['shipMan0'];
 			foreach($oriShipMan as $key => $val){
-				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+				array_push($shipMan, $oriShipMan[$key]);
 			}
 
-			$data[$uid]['container']['power'] = $sc['container']['pw'];
-			$data[$uid]['container']['shield'] = $sc['container']['sh'];
-			$data[$uid]['container']['exS']['inventory'] = $sc['container']['exS']['inventory0'];
+			$unk = array(
+				'double_a'	=> $sc['container']['exS'][0][0],
+				'long_a'	=> $sc['container']['exS'][0][1],
+				'arrData_a'	=> $sc['container']['exS'][0][2],
+				'byte_a'	=> $sc['container']['exS'][0][3],
+				'arrData_b'	=> $sc['container']['exS'][0][5]
+			);
 
-			$data[$uid]['container']['exS']['unk']['double_a'] = $sc['container']['exS'][0][0];
-			$data[$uid]['container']['exS']['unk']['long_a'] = $sc['container']['exS'][0][1];
-			$data[$uid]['container']['exS']['unk']['arrData_a'] = $sc['container']['exS'][0][2];
-			$data[$uid]['container']['exS']['unk']['byte_a'] = $sc['container']['exS'][0][3];
-			$data[$uid]['container']['exS']['unk']['arrData_b'] = $sc['container']['exS'][0][5];
+			$exS = array(
+				'inventory'	=> $sc['container']['exS']['inventory0'],
+				'unk'		=> $unk
+			);
 
-			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
-			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
-			$data[$uid]['creatorId']['seed'] = $sc['3'];
-			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
-			$data[$uid]['creatorId']['long_z'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+			$contenair = array(
+				'controllerStructure'	=> $contStruct,
+				'shipMan0'				=> $shipMan,
+				'power'					=> $sc['container']['pw'],
+				'shield'				=> $sc['container']['sh'],
+				'exS'					=> $exS
+			);
+
+			//creatoreId part
+			$creatoreId = array(
+				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
+				'lastMod'	=> $sc['2'],
+				'seed'		=> $sc['3'],
+				'touched'	=> ($sc['4'] == 1) ? true : false,
+				'byte_a'	=> $sc['5'],
+				'genId'		=> $sc['creatoreId']
+			);
+
+			//final array
+			$data = array(
+				'uniqueId'		=> $uid,
+				'type'			=> $this->type,
+				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'],
+				'dim'			=> $dim,
+				'dock'			=> $dock,
+				'transformable'	=> $transformable,
+				'container'		=> $contenair,
+				'creatorId'		=> $creatoreId
+			);
 
 			return $data;
 		}
 
 		private function formatAst($ent){
-			$data = array();
 			$sc = $ent['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
 
-			$data[$uid]['type'] = $this->type;
+			//dim part
+			$maxPos = array(
+				'x' => $sc['maxPos'][0],
+				'y' => $sc['maxPos'][1],
+				'z' => $sc['maxPos'][2]
+			);
+
+			$minPos = array(
+				'x' => $sc['minPos'][0],
+				'y' => $sc['minPos'][1],
+				'z' => $sc['minPos'][2]
+			);
+
+			$dim = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
+
+			//docking part
+			$dockedToPos = array(
+				'x' => $sc[0][1][0],
+				'y' => $sc[0][1][1],
+				'z' => $sc[0][1][2]
+			);
+
+			$dock = array(
+				'dockedTo'		=> $sc[0][0],
+				'dockedToPos'	=> $dockedToPos,
+				'byte_a'		=> $sc[0][2],
+				'byte_b'		=> $sc[0][3],
+				's'				=> $sc[0]['s'],
+			);
+
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
+
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
+
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
+
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
+
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
+
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'noAI'			=> $sc['transformable']['noAI'],
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
+
+			//creatoreId part
+			$creatoreId = array(
+				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
+				'lastMod'	=> $sc['2'],
+				'seed'		=> $sc['3'],
+				'touched'	=> ($sc['4'] == 1) ? true : false,
+				'byte_a'	=> $sc['5'],
+				'genId'		=> $sc['creatoreId']
+			);
+
+
+			$data = array(
+				'uniqueId'		=> $uid,
+				'type'			=> $this->type,
+				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'],
+				'dim'			=> $dim,
+				'dock'			=> $dock,
+				'transformable'	=> $transformable,
+				'dummy'			=> $sc['dummy'],
+				'creatorId'		=> $creatoreId
+			);
+
+			/*$data[$uid]['type'] = $this->type;
 
 			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
 			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
@@ -1297,7 +1348,7 @@
 			$data[$uid]['dock']['byte_b'] = $sc[0][3];
 			$data[$uid]['dock']['s'] = $sc[0]['s'];
 
-			$data[$uid]['cs1'] = $sc['cs1'];
+			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
 			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
 
 			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
@@ -1333,194 +1384,304 @@
 			$data[$uid]['creatorId']['seed'] = $sc['3'];
 			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
 			$data[$uid]['creatorId']['byte_z'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];*/
 
 			return $data;
 		}
 
 		private function formatPlan($ent){
-			$data = array();
 			$sc = $ent['Planet']['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
-			$AIConfig = $sc['transformable']['AIConfig0'];
+			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107//dim part
 
-			$data[$uid]['type'] = $this->type;
-			$data[$uid]['byte_a'] = $ent['Planet'][0];
+			$maxPos = array(
+				'x' => $sc['maxPos'][0],
+				'y' => $sc['maxPos'][1],
+				'z' => $sc['maxPos'][2]
+			);
 
-			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
-			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
-			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+			$minPos = array(
+				'x' => $sc['minPos'][0],
+				'y' => $sc['minPos'][1],
+				'z' => $sc['minPos'][2]
+			);
 
-			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
-			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
-			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+			$dim = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
 
-			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
-			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
-			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
-			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
-			$data[$uid]['dock']['byte_a'] = $sc[0][2];
-			$data[$uid]['dock']['byte_b'] = $sc[0][3];
-			$data[$uid]['dock']['s'] = $sc[0]['s'];
+			//docking part
+			$dockedToPos = array(
+				'x' => $sc[0][1][0],
+				'y' => $sc[0][1][1],
+				'z' => $sc[0][1][2]
+			);
 
-			$data[$uid]['cs1'] = $sc['cs1'];
-			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+			$dock = array(
+				'dockedTo'		=> $sc[0][0],
+				'dockedToPos'	=> $dockedToPos,
+				'byte_a'		=> $sc[0][2],
+				'byte_b'		=> $sc[0][3],
+				's'				=> $sc[0]['s'],
+			);
 
-			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
 
-			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
-			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
-			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
 
-			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
-			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
-			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
 
-			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
-			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
-			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
 
-			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
-			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
-			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
 
-			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+			$ai = array();
+			for($i = 0; $i < count($AIConfig); $i++){
+				$type	= $AIConfig[$i][0];
+				$state	= $AIConfig[$i][1];
+				$ai[$type] = $state;
+			}
 
-			$configType = $AIConfig['AIElement0']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
-			$configType = $AIConfig['AIElement1']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
-			$configType = $AIConfig['AIElement2']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
-			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
-			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'AIConfig'		=> $ai,
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
 
-			$data[$uid]['container'] = array();
-			$data[$uid]['container']['controllerStructure'] = array();
-			$data[$uid]['container']['shipMan0'] = array();
-
+			//contenair part
+			$contStruct = array();
 			$oriController = $sc['container']['controllerStructure'];
 			foreach($oriController as $key => $val){
-				$arr['type'] = $oriController[$key]['type'];
-				$arr['index'] = $oriController[$key]['index'];
-				$arr['inventory'] = $oriController[$key]['inventory0'];
-				array_push($data[$uid]['container']['controllerStructure'], $arr);
+				$arr = array(
+					'type'		=> $oriController[$key]['type'],
+					'index'		=> $oriController[$key]['index'],
+					'inventory'	=> $oriController[$key]['inventory0']
+				);
+				
+				array_push($contStruct, $arr);
 			}
 
+			$shipMan = array();
 			$oriShipMan = $sc['container']['shipMan0'];
 			foreach($oriShipMan as $key => $val){
-				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+				array_push($shipMan, $oriShipMan[$key]);
 			}
 
-			$data[$uid]['container']['power'] = $sc['container']['pw'];
-			$data[$uid]['container']['shield'] = $sc['container']['sh'];
-			$data[$uid]['container']['exS']['inventory'] = $sc['container']['exS']['inventory0'];
+			$unk = array(
+				'double_a'	=> $sc['container']['exS'][0][0],
+				'long_a'	=> $sc['container']['exS'][0][1],
+				'arrData_a'	=> $sc['container']['exS'][0][2],
+				'byte_a'	=> $sc['container']['exS'][0][3],
+				'arrData_b'	=> $sc['container']['exS'][0][5]
+			);
 
-			$data[$uid]['container']['exS']['unk']['double_a'] = $sc['container']['exS'][0][0];
-			$data[$uid]['container']['exS']['unk']['long_a'] = $sc['container']['exS'][0][1];
-			$data[$uid]['container']['exS']['unk']['arrData_a'] = $sc['container']['exS'][0][2];
-			$data[$uid]['container']['exS']['unk']['byte_a'] = $sc['container']['exS'][0][3];
-			$data[$uid]['container']['exS']['unk']['arrData_b'] = $sc['container']['exS'][0][5];
+			$exS = array(
+				'inventory'	=> $sc['container']['exS']['inventory0'],
+				'unk'		=> $unk
+			);
 
-			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
-			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
-			$data[$uid]['creatorId']['seed'] = $sc['3'];
-			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
-			$data[$uid]['creatorId']['long_z'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+			$contenair = array(
+				'controllerStructure'	=> $contStruct,
+				'shipMan0'				=> $shipMan,
+				'power'					=> $sc['container']['pw'],
+				'shield'				=> $sc['container']['sh'],
+				'exS'					=> $exS
+			);
+
+			//creatoreId part
+			$creatoreId = array(
+				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
+				'lastMod'	=> $sc['2'],
+				'seed'		=> $sc['3'],
+				'touched'	=> ($sc['4'] == 1) ? true : false,
+				'byte_a'	=> $sc['5'],
+				'genId'		=> $sc['creatoreId']
+			);
+
+			//final array
+			$data = array(
+				'uniqueId'		=> $uid,
+				'type'			=> $this->type,
+				'byte_a'		=> $ent['Planet'][0],
+				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Planet' : $sc['realname'],
+				'dim'			=> $dim,
+				'dock'			=> $dock,
+				'transformable'	=> $transformable,
+				'container'		=> $contenair,
+				'creatorId'		=> $creatoreId
+			);
 
 			return $data;
 		}
 
 		private function formatShip($ent){
-			$data = array();
 			$sc = $ent['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
-			$AIConfig = $sc['transformable']['AIConfig0'];
+			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
 
-			$data[$uid]['type'] = $this->type;
+			//dim part
+			$maxPos = array(
+				'x' => $sc['maxPos'][0],
+				'y' => $sc['maxPos'][1],
+				'z' => $sc['maxPos'][2]
+			);
 
-			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
-			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
-			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
+			$minPos = array(
+				'x' => $sc['minPos'][0],
+				'y' => $sc['minPos'][1],
+				'z' => $sc['minPos'][2]
+			);
 
-			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
-			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
-			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
+			$dim = array(
+				'maxPos' => $maxPos,
+				'minPos' => $minPos
+			);
 
-			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
-			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
-			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
-			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
-			$data[$uid]['dock']['byte_a'] = $sc[0][2];
-			$data[$uid]['dock']['byte_b'] = $sc[0][3];
-			$data[$uid]['dock']['s'] = $sc[0]['s'];
+			//docking part
+			$dockedToPos = array(
+				'x' => $sc[0][1][0],
+				'y' => $sc[0][1][1],
+				'z' => $sc[0][1][2]
+			);
 
-			$data[$uid]['cs1'] = $sc['cs1'];
-			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
+			$dock = array(
+				'dockedTo'		=> $sc[0][0],
+				'dockedToPos'	=> $dockedToPos,
+				'byte_a'		=> $sc[0][2],
+				'byte_b'		=> $sc[0][3],
+				's'				=> $sc[0]['s'],
+			);
 
-			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
 
-			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
-			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
-			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
 
-			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
-			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
-			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
 
-			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
-			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
-			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
 
-			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
-			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
-			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
 
-			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
+			$ai = array();
+			for($i = 0; $i < count($AIConfig); $i++){
+				$type	= $AIConfig[$i][0];
+				$state	= $AIConfig[$i][1];
+				$ai[$type] = $state;
+			}
 
-			$configType = $AIConfig['AIElement0']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement0']['state'];
-			$configType = $AIConfig['AIElement1']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement1']['state'];
-			$configType = $AIConfig['AIElement2']['type'];
-			$data[$uid]['transformable']['AIConfig'][$configType] = $AIConfig['AIElement2']['state'];
-			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
-			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'AIConfig'		=> $ai,
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
 
-			$data[$uid]['container'] = array();
-			$data[$uid]['container']['controllerStructure'] = array();
-			$data[$uid]['container']['shipMan0'] = array();
-
+			//contenair part
+			$contStruct = array();
 			$oriController = $sc['container']['controllerStructure'];
 			foreach($oriController as $key => $val){
-				$arr['type'] = $oriController[$key]['type'];
-				$arr['index'] = $oriController[$key]['index'];
-				$arr['inventory'] = $oriController[$key]['inventory0'];
-				array_push($data[$uid]['container']['controllerStructure'], $arr);
+				$arr = array(
+					'type'		=> $oriController[$key]['type'],
+					'index'		=> $oriController[$key]['index'],
+					'inventory'	=> $oriController[$key]['inventory0']
+				);
+				
+				array_push($contStruct, $arr);
 			}
 
+			$shipMan = array();
 			$oriShipMan = $sc['container']['shipMan0'];
 			foreach($oriShipMan as $key => $val){
-				array_push($data[$uid]['container']['shipMan0'], $oriShipMan[$key]);
+				array_push($shipMan, $oriShipMan[$key]);
 			}
 
-			$data[$uid]['container']['power'] = $sc['container']['pw'];
-			$data[$uid]['container']['shield'] = $sc['container']['sh'];
-			$data[$uid]['container']['ex'] = $sc['container']['ex'];
+			$contenair = array(
+				'controllerStructure'	=> $contStruct,
+				'shipMan0'				=> $shipMan,
+				'power'					=> $sc['container']['pw'],
+				'shield'				=> $sc['container']['sh'],
+				'ex'					=> $sc['container']['ex']
+			);
 
-			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
-			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
-			$data[$uid]['creatorId']['seed'] = $sc['3'];
-			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
-			$data[$uid]['creatorId']['long_z'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];
+			//creatoreId part
+			$creatoreId = array(
+				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
+				'lastMod'	=> $sc['2'],
+				'seed'		=> $sc['3'],
+				'touched'	=> ($sc['4'] == 1) ? true : false,
+				'byte_a'	=> $sc['5'],
+				'genId'		=> $sc['creatoreId']
+			);
+
+			//final array
+			$data = array(
+				'uniqueId'		=> $uid,
+				'type'			=> $this->type,
+				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'],
+				'dim'			=> $dim,
+				'dock'			=> $dock,
+				'transformable'	=> $transformable,
+				'container'		=> $contenair,
+				'creatorId'		=> $creatoreId
+			);
 
 			return $data;
 		}
@@ -1530,66 +1691,100 @@
 			$sc = $ent['PlayerCharacter'];
 			$transform = $sc['transformable']['transform'];
 
-			$data['name'] = $pseudo;
-			$data['id'] = $sc['id'];			
-			$data['speed'] = $sc['speed'];	
-			$data['stepHeight'] = $sc['stepHeight'];
+			//transform part
+			$transX = array(
+				'x' => $transform[0],
+				'y' => $transform[1],
+				'z' => $transform[2]
+			);
 
-			$data['transformable']['mass'] = $sc['transformable']['mass'];
+			$transY = array(
+				'x' => $transform[4],
+				'y' => $transform[5],
+				'z' => $transform[6]
+			);
 
-			$data['transformable']['transformX']['x'] = $transform[0];
-			$data['transformable']['transformX']['y'] = $transform[1];
-			$data['transformable']['transformX']['z'] = $transform[2];
+			$transZ = array(
+				'x' => $transform[8],
+				'y' => $transform[9],
+				'z' => $transform[10]
+			);
 
-			$data['transformable']['transformY']['x'] = $transform[4];
-			$data['transformable']['transformY']['y'] = $transform[5];
-			$data['transformable']['transformY']['z'] = $transform[6];
+			$localPos = array(
+				'x' => $transform[12],
+				'y' => $transform[13],
+				'z' => $transform[14]
+			);
 
-			$data['transformable']['transformZ']['x'] = $transform[8];
-			$data['transformable']['transformZ']['y'] = $transform[9];
-			$data['transformable']['transformZ']['z'] = $transform[10];
+			$sPos = array(
+				'x' => $sc['transformable']['sPos'][0],
+				'y' => $sc['transformable']['sPos'][1],
+				'z' => $sc['transformable']['sPos'][2]
+			);
 
-			$data['transformable']['localPos']['x'] = $transform[12];
-			$data['transformable']['localPos']['y'] = $transform[13];
-			$data['transformable']['localPos']['z'] = $transform[14];
+			$transformable = array(
+				'mass'			=> $sc['transformable']['mass'],
+				'transformX'	=> $transX,
+				'transformY'	=> $transY,
+				'transformZ'	=> $transZ,
+				'localPos'		=> $localPos,
+				'sPos'			=> $sPos,
+				'noAI'			=> $sc['transformable']['noAI'],
+				'fid'			=> $sc['transformable']['fid'],
+				'own'			=> $sc['transformable']['own']
+			);
 
-			$data['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
-
-			$data['transformable']['noAI'] = $sc['transformable']['noAI'];
-			$data['transformable']['fid'] = $sc['transformable']['fid'];
-			$data['transformable']['own'] = $sc['transformable']['own'];
+			//final array
+			$data = array(
+				'name'			=> $pseudo,
+				'id'			=> $sc['id'],
+				'speed'			=> $sc['speed'],
+				'stepHeight'	=> $sc['stepHeight'],
+				'transformable'	=> $transformable
+			);
 
 			return $data;
 		}
 
 		private function formatStats($ent, $pseudo){
-			$data = array();
 			$sc = $ent['PlayerState'];
 
-			$data['name'] = $pseudo;
-			$data['credits'] = $sc['credits'];
-			$data['inventory'] = $sc['inventory0'];
-			$data['spawn'] = $sc['spawn'];
-			$data['sector'] = $sc['sector'];
-			$data['lspawn'] = $sc['lspawn'];
-			$data['lsector'] = $sc['lsector'];
-			$data['fid'] = $sc['pFac-v0'][0];
-			$data['lastLogin'] = $sc[0];
-			$data['unk_timestamp'] = $sc[1];
-			$data['lastShip'] = $sc[2];
-
+			$hist = array();
 			for($i = 0; $i < count($sc['hist']); $i++){
-				$data['hist'][$i]['timestamp'] = $sc['hist'][$i][0];
-				$data['hist'][$i]['ip'] = $sc['hist'][$i][1];
+
+				$hist[$i] = array(
+					'timestamp'	=> $sc['hist'][$i][0],
+					'ip'		=> $sc['hist'][$i][1]
+				);
+
 			}
 
+			$ships = array();
 			for($i = 0; $i < count($sc[$pseudo]); $i++){
-				$data[$pseudo][$i]['ship'] = $sc[$pseudo][$i][0];
-				$data[$pseudo][$i]['unk'] = $sc[$pseudo][$i][1];
+
+				$ships[$i] = array(
+					'ship'	=> $sc[$pseudo][$i][0],
+					'unk'	=> $sc[$pseudo][$i][1]
+				);
+
 			}
-			
+
+			$data = array(
+				'name'			=> $pseudo,
+				'credits'		=> $sc['credits'],
+				'inventory'		=> $sc['inventory0'],
+				'spawn'			=> $sc['spawn'],
+				'sector'		=> $sc['sector'],
+				'lspawn'		=> $sc['lspawn'],
+				'lsector'		=> $sc['lsector'],
+				'fid'			=> $sc['pFac-v0'][0],
+				'lastLogin'		=> $sc[0],
+				'unk_timestamp'	=> $sc[1],
+				'hist'			=> $hist,
+				'lastShip'		=> $sc[2],
+				$pseudo			=> $ships
+			);
+
 			return $data;
 		}
 
@@ -1607,9 +1802,9 @@
 			return $byte;
 		}
 
-		private function readNextBytes($lenght){
+		private function readNextBytes($length){
 			$pos = ftell($this->stream);
-			$byte = $this->readBytes($lenght);
+			$byte = $this->readBytes($length);
 			fseek($this->stream, $pos);
 			return $byte;
 		}
@@ -1855,6 +2050,29 @@
 			$x = $x & (pow(2, $len )-1);
 			
 			return $x;
+		}
+
+		public function convertArrayToUtf8(array $array){
+			$convertedArray = array();
+
+			foreach($array as $key => $value){
+
+				if(!mb_check_encoding($key, 'UTF-8')){
+					$key = utf8_encode($key);
+				}
+
+				if(is_array($value)){
+					$value = $this->convertArrayToUtf8($value);
+				}
+				
+				if(is_string($value)){
+					$value = utf8_encode($value);
+				}
+
+				$convertedArray[$key] = $value;
+			}
+
+			return $convertedArray;
 		}
 	}
 ?>

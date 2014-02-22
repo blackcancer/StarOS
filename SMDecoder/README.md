@@ -3,8 +3,9 @@ SMDecoder Class
 
 Description: Intergrate Starmade files within your own projects.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.6  
-Date: 2014-12-30  
+Version: 0.6-rev00003
+SM-Version: dev build 0.107 
+Date: 2014-01-03 
 
 By Blackcancer  
 website: http://initsysrev.net  
@@ -14,6 +15,12 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
+
+0.6-rev00003:
+-	Add new tag chr(241) actual unknown
+-	Update for AIConfig
+-	Rework output format
+-	Correction of date ;)
 
 0.6:
 -	Complete rework of class.
