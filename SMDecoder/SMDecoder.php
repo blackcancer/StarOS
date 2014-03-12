@@ -4,8 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00003						Date: 2014-01-03
-		SM-Version: dev build 0.107
+		FileVersion: 0.6-rev00004						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -54,7 +53,7 @@
 	class SMDecoder{
 		private $stream;
 		private $type;
-		
+
 		public function decodeSMFile($file, $formated = false){
 			$ent = array();
 			$this->stream = fopen($file, "rb");
@@ -1072,10 +1071,11 @@
 		}
 
 		private function formatStation($ent){
-			$sc = $ent['SpaceStation']['sc'];
-			$uid = $sc['uniqueId'];
-			$transform = $sc['transformable']['transform'];
-			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
+			$sc			= $ent['SpaceStation']['sc'];
+			$uid		= $sc['uniqueId'];
+			$transform	= $sc['transformable']['transform'];
+			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
+			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
 
 			//dim part
 			$maxPos = array(
@@ -1142,10 +1142,17 @@
 			);
 
 			$ai = array();
-			for($i = 0; $i < count($AIConfig); $i++){
-				$type	= $AIConfig[$i][0];
-				$state	= $AIConfig[$i][1];
-				$ai[$type] = $state;
+			if($isAI0){
+				$ai[0] = $AIConfig['AIElement0']['state'];
+				$ai[1] = $AIConfig['AIElement1']['state'];
+				$ai[2] = $AIConfig['AIElement2']['state'];
+			}
+			else {
+				for($i = 0; $i < count($AIConfig); $i++){
+					$type	= $AIConfig[$i][0];
+					$state	= $AIConfig[$i][1];
+					$ai[$type] = $state;
+				}
 			}
 
 			$transformable = array(
@@ -1393,7 +1400,8 @@
 			$sc = $ent['Planet']['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
-			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107//dim part
+			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
+			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
 
 			$maxPos = array(
 				'x' => $sc['maxPos'][0],
@@ -1459,12 +1467,18 @@
 			);
 
 			$ai = array();
-			for($i = 0; $i < count($AIConfig); $i++){
-				$type	= $AIConfig[$i][0];
-				$state	= $AIConfig[$i][1];
-				$ai[$type] = $state;
+			if($isAI0){
+				$ai[0] = $AIConfig['AIElement0']['state'];
+				$ai[1] = $AIConfig['AIElement1']['state'];
+				$ai[2] = $AIConfig['AIElement2']['state'];
 			}
-
+			else {
+				for($i = 0; $i < count($AIConfig); $i++){
+					$type	= $AIConfig[$i][0];
+					$state	= $AIConfig[$i][1];
+					$ai[$type] = $state;
+				}
+			}
 			$transformable = array(
 				'mass'			=> $sc['transformable']['mass'],
 				'transformX'	=> $transX,
@@ -1548,7 +1562,8 @@
 			$sc = $ent['sc'];
 			$uid = $sc['uniqueId'];
 			$transform = $sc['transformable']['transform'];
-			$AIConfig =  $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
+			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
+			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
 
 			//dim part
 			$maxPos = array(
@@ -1615,10 +1630,17 @@
 			);
 
 			$ai = array();
-			for($i = 0; $i < count($AIConfig); $i++){
-				$type	= $AIConfig[$i][0];
-				$state	= $AIConfig[$i][1];
-				$ai[$type] = $state;
+			if($isAI0){
+				$ai[0] = $AIConfig['AIElement0']['state'];
+				$ai[1] = $AIConfig['AIElement1']['state'];
+				$ai[2] = $AIConfig['AIElement2']['state'];
+			}
+			else {
+				for($i = 0; $i < count($AIConfig); $i++){
+					$type	= $AIConfig[$i][0];
+					$state	= $AIConfig[$i][1];
+					$ai[$type] = $state;
+				}
 			}
 
 			$transformable = array(
