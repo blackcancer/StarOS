@@ -39,11 +39,11 @@ var config = {
 	vfsdir:		'/opt/StarOS/',
 	homeroot:	'/opt/StarOS/root',
 	homedir:	'/opt/StarOS/home',
-	tmpdir:		'/opt/StarOS/tmp'
+	tmpdir:		'/opt/StarOS/tmp',
+	logdir:		'/var/log/StarOS'
 };
 
-var server, io,
-	logger = new Logger();
+var server, io;
 
 
 //------------------------------------------
@@ -208,7 +208,7 @@ function onSocConn(socket){
 
 //Check if settings.json exist
 if(_FS.existsSync(spath)){
-	logger.info("Config","Configuration file found...");
+	console.log("Config","Configuration file found...");
 	try {
 		//read settings.json content
 		var data = _FS.readFileSync(spath);
@@ -220,7 +220,6 @@ if(_FS.existsSync(spath)){
 
 			//for each configs in settings.json, add/replace default config
 			for(var i in data){
-				logger.debug("Config", "Add/replace", i);
 				config[i] = data[i];
 			}
 
@@ -231,10 +230,12 @@ if(_FS.existsSync(spath)){
 
 	}
 	catch(cErr){
-		logger.warn("Config", "Failed to parse settings JSON file", "-", String(cErr));
+		console.log("Config", "Failed to parse settings JSON file", "-", String(cErr));
 	}
 }
 
+console.log(config.logdir)
+var logger = new Logger({level: 7, logdir: config.logdir});
 //Check if appdirs config exist and is an array
 if(config.appdirs === null || !(config.appdirs instanceof Array)){
 	//if does not exist or is not an array, use apath
