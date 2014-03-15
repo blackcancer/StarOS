@@ -3,7 +3,7 @@ StarOS_Map
 
 Description: A starmap for StarMade, this project is subproject of StarOS.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.5-rev00011  
+Version: 0.5-rev00101  
 Date: 2014-01-6  
 
 By Blackcancer  
