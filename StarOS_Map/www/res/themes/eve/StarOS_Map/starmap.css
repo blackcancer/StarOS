@@ -1,0 +1,340 @@
+/*
+	Product: Starmap stylesheet of StarOS Map
+	Description: This stylesheet contain all Starmap element css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	Version: 0.1								Date: 2014-03-12_18:00
+	Theme Name: Eve
+	By Blackcancer
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+#Starmap {
+	z-index: 10;
+}
+
+#Starmap .renderer{
+	z-index: 20;
+}
+
+/**
+* Starmap information label
+**/
+#Starmap_Info{
+	top: 5px;
+	font-size: 18px;
+	font-family: 'EngschriftDIND',Arial,sans-serif;
+	font-weight: bold;
+	color: #189fcc;
+	z-index: 30;
+}
+
+
+/**
+* Starmap loading box
+**/
+#Starmap_loading {
+	z-index: 500;
+	text-align: center;
+}
+
+#Starmap_loading .Window_brd_leftTop, #Starmap_loading .Window_brd_top, #Starmap_loading .Window_brd_rightTop,
+#Starmap_loading .Window_brd_leftBottom, #Starmap_loading .Window_brd_bottom, #Starmap_loading .Window_brd_rightBottom {
+	height: 1px;
+}
+
+#Starmap_loading .Window_brd_leftTop, #Starmap_loading .Window_brd_left, #Starmap_loading .Window_brd_rightTop,
+#Starmap_loading .Window_brd_leftBottom, #Starmap_loading .Window_brd_right, #Starmap_loading .Window_brd_rightBottom {
+	width: 1px;
+}
+
+
+/**
+* Starmap control box
+**/
+#Starmap_controlBoxBody {
+	width: 180px;
+	height: 315px;
+	z-index: 30;
+	right: 10px;
+}
+
+#Starmap_controlBoxBody .Window_brd_leftTop, #Starmap_controlBoxBody .Window_brd_top, #Starmap_controlBoxBody .Window_brd_rightTop,
+#Starmap_controlBoxBody .Window_brd_leftBottom, #Starmap_controlBoxBody .Window_brd_bottom, #Starmap_controlBoxBody .Window_brd_rightBottom {
+	height: 1px;
+}
+
+#Starmap_controlBoxBody .Window_brd_leftTop, #Starmap_controlBoxBody .Window_brd_left, #Starmap_controlBoxBody .Window_brd_rightTop,
+#Starmap_controlBoxBody .Window_brd_leftBottom, #Starmap_controlBoxBody .Window_brd_right, #Starmap_controlBoxBody .Window_brd_rightBottom {
+	width: 1px;
+}
+
+	.ControlBox_toggleBtnHide {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -30px;
+		top: 141px;
+		width: 13px;
+		height: 20px;
+		z-index: 29;
+	}
+
+	.ControlBox_toggleBtnHide:hover {
+		background-position: -12px -30px;
+	}
+
+	.ControlBox_toggleBtnShow {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -50px;
+		top: 141px;
+		width: 13px;
+		height: 20px;
+		z-index: 29;
+	}
+
+	.ControlBox_toggleBtnShow:hover {
+		background-position: -12px -50px;
+	}
+
+	#Starmap_selectbox{
+		margin-bottom: 20px;
+		margin-top: 10px;
+	}
+
+		.SelectBox_CHKshop, .SelectBox_CHKstation, .SelectBox_CHKasteroid, .SelectBox_CHKplanet, .SelectBox_CHKship, .SelectBox_CHKturret {
+			margin-left: 10px;
+			line-height: 20px;
+		}
+
+	#Starmap_searchbox{
+		margin-bottom: 40px;
+		height: 100px;
+	}
+
+		.SearchBox_RADsystem, .SearchBox_RADsector, .SearchBox_RADother {
+			margin-left: 10px;
+		}
+
+		.SearchBox_searchField {
+			width: 145px;
+			margin: 9px;
+		}
+
+		.SearchBox_searchBtn {
+			width: 78px;
+			height: 18px;
+			margin-top: 5px;
+			margin-left: 77px;
+			margin-bottom: 0px;
+		}
+
+		.SearchBox_searchBtn:hover {
+		}
+
+	#Starmap_Backbox{
+		margin-bottom: 20px;
+	}
+
+		.BackBox_back, .BackBox_sysView {
+			height: 18px;
+		}
+
+		.BackBox_back {
+			width: 60px;
+			margin-left: 9px;
+		}
+
+		.BackBox_back:hover {
+		}
+
+		.BackBox_sysView {
+			width: 78px;
+			margin-left: 8px;
+		}
+
+		.BackBox_sysView:hover {
+		}
+
+
+/**
+* Starmap information box
+**/
+#Starmap_infobox {
+	left: 0px;
+	top: 0px;
+	width: 220px;
+	z-index: 30;
+}
+
+	.Infobox_content {
+		width: 219px;
+		background: rgba(16,16,16,0.6);
+	}
+
+	.Infobox_content dl {
+		margin-left: 10px;
+		line-height: 16px;
+	}
+
+	.Infobox_content dl dt{
+		float: left;
+		margin: 0;
+		color: #189fcc;
+		font-weight: bold;
+	}
+
+	.Infobox_content dl dd{
+		margin: 0;
+		margin-left: 70px;
+	}
+
+	.Infobox_btnHide {
+		background: url(../skin/infoBtn.png);
+		width: 220px;
+		height: 30px;
+	}
+
+	.Infobox_btnShow {
+		background: url(../skin/infoBtn.png);
+		width: 220px;
+		height: 30px;
+	}
+
+	.Infobox_brd_right, .Infobox_brd_corner {
+		background: rgba(255,255,255,0.2);
+		width: 1px;
+		right: 0px;
+	}
+
+	.Infobox_brd_bottom, .Infobox_brd_corner {
+		background: rgba(255,255,255,0.2);
+		height: 1px;
+		bottom: 0px;
+	}
+
+	.Infobox_realname{
+		font-size: 14px;
+		color: #189fcc;
+		font-weight: bold;
+	}
+
+	.Infobox_icon {
+		margin-top: 10px;
+		margin-bottom: 5px;
+	}
+
+/**
+*	StarOS Login area
+**/
+#StarOS_Login {
+	background: rgba(16,16,16,0.6);
+	border: 1px solid rgba(255,255,255,0.15);
+	right: 10px;
+	bottom: 10px;
+	width: 230px;
+	height: 110px;
+	padding: 10px;
+	z-index: 40;
+}
+
+	.SLogin_userField, .SLogin_passField {
+		right: 10px;
+		width: 120px;
+	}
+
+	.SLogin_user, .SLogin_pass {
+		font-weight: bold;
+		line-height: 19px;
+	}
+
+	.SLogin_user {
+		top: 12px;
+	}
+
+	.SLogin_userField {
+		top: 10px;
+	}
+
+	.SLogin_pass {
+		top: 40px;
+	}
+
+	.SLogin_passField {
+		top: 38px;
+	}
+
+	.SLogin_buttonDisc {
+		background:url(../skin/logBtn.png);
+		background-position: 0px 0px;
+		width: 104px;
+		height: 44px;
+		right: 10px;
+		bottom: 10px;
+	}
+
+	.SLogin_buttonDisc:hover {
+		background-position: 0px -44px;
+	}
+
+	.SLogin_buttonConn {
+		background:url(../skin/logBtn.png);
+		background-position: -104px 0px;
+		width: 104px;
+		height: 44px;
+		right: 10px;
+		bottom: 10px;
+	}
+
+	.SLogin_buttonConn:hover {
+		background-position: -104px -44px;
+	}
+
+
+#Starmap_debug {
+	z-index: 30;
+	font-size: 12px;
+	left: 10px;
+	bottom: 10px;
+	color: #189fcc;
+}
+
+#Starmap_debug .Window_brd_leftTop, #Starmap_debug .Window_brd_top, #Starmap_debug .Window_brd_rightTop,
+#Starmap_debug .Window_brd_leftBottom, #Starmap_debug .Window_brd_bottom, #Starmap_debug .Window_brd_rightBottom {
+	height: 1px;
+}
+
+#Starmap_debug .Window_brd_leftTop, #Starmap_debug .Window_brd_left, #Starmap_debug .Window_brd_rightTop,
+#Starmap_debug .Window_brd_leftBottom, #Starmap_debug .Window_brd_right, #Starmap_debug .Window_brd_rightBottom {
+	width: 1px;
+}
+
+	.Debug_mouseX , .Debug_mouseY, .Debug_stats {
+		left: 10px;
+	}
+
+	.Debug_stats, .Debug_currView {
+		top: 10px;
+	}
+
+	.Debug_mouseX {
+		top: 60px;
+	}
+
+	.Debug_mouseY {
+		top: 75px;
+	}
+
+	.Debug_currView {
+		left: 110px;
+	}
+
+	.Debug_prevView {
+		left: 110px;
+		top: 25px;
+	}
+
+	.Debug_currCoords {
+		left: 110px;
+		top: 40px;
+	}

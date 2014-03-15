@@ -1,0 +1,80 @@
+{
+	"sessionErr":	"Erreur: Impossible d'obtenir la session",
+
+	"login": {
+		"user":			"Pseudo",
+		"pass":			"Mot de passe",
+		"emptyField":	"Tout les champs ne sont pas remplit.",
+		"badLogin":		"Le mot de passe ou le Pseudo est incorrect.",
+		"connectErr":	"Erreur: impossible de vous connecter.",
+		"disconnectErr":"Erreur: impossible de vous déconnecter."
+	},
+
+	"mapInfo": {
+		"button":	"Informations",
+		"fname":	"Aucune",
+		"home":		" Homeworld",
+		"dt": {
+			"type":		"Type",
+			"sector":	"Secteur",
+			"faction":	"Faction",
+			"mass":		"Masse",
+			"power":	"Energie",
+			"shield":	"Bouclier"
+		}
+	},
+
+	"control": {
+		"select": {
+			"shop":		"Commerces",
+			"station":	"Stations",
+			"asteroid":	"Asteroïdes",
+			"planet":	"Planètes",
+			"ship":		"Vaisseaux",
+			"turret":	"Tourelles"
+		},
+		"search": {
+			"placeholder":	"chercher",
+			"system":		"Système",
+			"sector":		"Secteur",
+			"other":		"Autre",
+			"button":		"Chercher"
+		},
+		"back": {
+			"back":			"Retour",
+			"sysView":		"Systèmes"
+		},
+		"noSys":		"Ce système n'a pas été exploré ou les entités sont masquées.",
+		"noSec":		"Ce secteur n'a pas été exploré ou les entités sont masquées.",
+		"noGeneric":	"Vous ne pouvez pas chercher les noms générique Shop, Turret, Planet et Asteroid.",
+		"notFound":		" est introuvable (peut être masqué).",
+		"coordFormat":	"Le format de coordonnée doit être:\n\t- 1,2,0\n\t- 1.2.0\n\t- 1_2_0\n\t- 1 2 0\n"
+	},
+
+	"PropertyWindow": {
+		"theme":	"Theme",
+		"font":		"Police",
+		"size":		"Taille",
+		"buttons":	{
+			"ok":		"Ok",
+			"cancel":	"Annuler",
+			"apply":	"Appliquer"
+		}
+	},
+
+	"type": [
+		"",
+		"Commerce",
+		"Station",
+		"Asteroïde",
+		[
+			"Planète Rouge",
+			"Planète Terrestre",
+			"Planète Déserte",
+			"Planète Alien",
+			"Planète Glace"
+		],
+		"Vaisseau",
+		"Tourelle"
+	]
+}

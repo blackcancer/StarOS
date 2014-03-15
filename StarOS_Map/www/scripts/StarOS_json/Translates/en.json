@@ -1,0 +1,80 @@
+{
+	"sessionErr":	"Error: Can not get session",
+
+	"login": {
+		"user":			"Login",
+		"pass":			"Password",
+		"emptyField":	"All fields are not filleds.",
+		"badLogin":		"Password or login is wrong.",
+		"connectErr":	"Error: Can not connect.",
+		"disconnectErr":"Error: Can not disconnect."
+	},
+
+	"mapInfo": {
+		"button":	"Informations",
+		"fname":	"None",
+		"home":		"'s Homeworld",
+		"dt": {
+			"type":		"Type",
+			"sector":	"Sector",
+			"faction":	"Faction",
+			"mass":		"Mass",
+			"power":	"Power",
+			"shield":	"Shield"
+		}
+	},
+
+	"control": {
+		"select": {
+			"shop":		"Shops",
+			"station":	"Stations",
+			"asteroid":	"Asteroids",
+			"planet":	"Planets",
+			"ship":		"Ships",
+			"turret":	"Turrets"
+		},
+		"search": {
+			"placeholder":	"search",
+			"system":		"System",
+			"sector":		"Sector",
+			"other":		"Other",
+			"button":		"Search"
+		},
+		"back": {
+			"back":			"Back",
+			"sysView":		"Systems"
+		},
+		"noSys":		"This system did not explored or entities are hidden.",
+		"noSec":		"This sector did not explored or entities are hidden.",
+		"noGeneric":	"You can not search for generic name Shop, Turret, Planet and Asteroid.",
+		"notFound":		" is not found (can be hidden).",
+		"coordFormat":	"Coordinate format muste be:\n\t- 1,2,0\n\t- 1.2.0\n\t- 1_2_0\n\t- 1 2 0\n"
+	},
+
+	"PropertyWindow": {
+		"theme":	"Theme",
+		"font":		"Font",
+		"size":		"Size",
+		"buttons":	{
+			"ok":		"Ok",
+			"cancel":	"Cancel",
+			"apply":	"Apply"
+		}
+	},
+
+	"type": [
+		"",
+		"Shop",
+		"Station",
+		"Asteroid",
+		[
+			"Red Planet",
+			"Terran Planet",
+			"Desert Planet",
+			"Alien Planet",
+			"Ice Planet"
+		],
+		"Ship",
+		"Turret"
+	]
+}

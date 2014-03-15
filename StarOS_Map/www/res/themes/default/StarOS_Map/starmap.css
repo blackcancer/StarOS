@@ -1,0 +1,322 @@
+/*
+	Product: Starmap stylesheet of StarOS Map
+	Description: This stylesheet contain all Starmap element css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 5.0-rev00101					Date: 2013-12-28
+	Theme Name: Neon
+	By Blackcancer
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+#Starmap {
+	z-index: 10;
+}
+
+#Starmap .renderer{
+	z-index: 20;
+}
+
+/**
+* Starmap information label
+**/
+#Starmap_Info{
+	top: 0px;
+	font-size: 12px;
+	z-index: 30;
+}
+
+
+/**
+* Starmap loading box
+**/
+#Starmap_loading {
+	z-index: 500;
+	text-align: center;
+}
+
+
+/**
+* Starmap control box
+**/
+#Starmap_controlBoxBody {
+	width: 180px;
+	height: 315px;
+	z-index: 30;
+	right: -10px;
+}
+
+	.ControlBox_toggleBtnHide {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -30px;
+		top: 141px;
+		width: 13px;
+		height: 20px;
+		z-index: 29;
+	}
+
+	.ControlBox_toggleBtnHide:hover {
+		background-position: -12px -30px;
+	}
+
+	.ControlBox_toggleBtnShow {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -50px;
+		top: 141px;
+		width: 13px;
+		height: 20px;
+		z-index: 29;
+	}
+
+	.ControlBox_toggleBtnShow:hover {
+		background-position: -12px -50px;
+	}
+
+	#Starmap_selectbox{
+		margin-bottom: 20px;
+		margin-top: 10px;
+	}
+
+		.SelectBox_CHKshop, .SelectBox_CHKstation, .SelectBox_CHKasteroid, .SelectBox_CHKplanet, .SelectBox_CHKship, .SelectBox_CHKturret {
+			line-height: 20px;
+			margin-left: 0;
+		}
+
+		.SelectBox_shop, .SelectBox_station, .SelectBox_asteroid, .SelectBox_planet, .SelectBox_ship, .SelectBox_turret {
+			margin-left: 5px;
+		}
+
+	#Starmap_searchbox{
+		margin-bottom: 20px;
+		height: 100px;
+	}
+
+		.SearchBox_RADsystem, .SearchBox_RADsector, .SearchBox_RADother {
+			margin-left: 0;
+		}
+
+		.SearchBox_searchField {
+			width: 143px;
+			margin-bottom: 5px;
+		}
+
+		.SearchBox_searchBtn {
+			background:url(../skin/gui_sprites.png);
+			background-position: -60px -88px;
+			width: 78px;
+			height: 18px;
+			margin-top: 5px;
+			margin-left: 66px;
+			margin-bottom: 0px;
+		}
+
+		.SearchBox_searchBtn:hover {
+			background-position: -60px -106px;
+		}
+
+	#Starmap_Backbox{
+		margin-bottom: 20px;
+	}
+
+		.BackBox_back, .BackBox_sysView {
+			background:url(../skin/gui_sprites.png);
+			height: 18px;
+		}
+
+		.BackBox_back {
+			background-position: 0px -88px;
+			width: 60px;
+			margin-left: 0;
+		}
+
+		.BackBox_back:hover {
+			background-position: 0px -106px;
+		}
+
+		.BackBox_sysView {
+			background-position: -60px -88px;
+			width: 78px;
+			margin-left: 6px;
+		}
+
+		.BackBox_sysView:hover {
+			background-position: -60px -106px;
+		}
+
+
+/**
+* Starmap information box
+**/
+#Starmap_infobox {
+	left: -8px;
+	top: -8px;
+	width: 220px;
+	z-index: 30;
+}
+
+	.Infobox_content {
+		width: 219px;
+		background: url(../skin/win_background.png);
+	}
+
+	.Infobox_content dl {
+		margin-left: 10px;
+		line-height: 16px;
+	}
+
+	.Infobox_content dl dt{
+		float: left;
+		margin: 0;
+		color: #189fcc;
+		text-shadow: 0 0 10px #189fcc;
+		font-weight: bold;
+	}
+
+	.Infobox_content dl dd{
+		margin: 0;
+		margin-left: 70px;
+	}
+
+	.Infobox_btnHide {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -132px;
+		width: 220px;
+		height: 30px;
+	}
+
+	.Infobox_btnShow {
+		background:url(../skin/gui_sprites.png);
+		background-position: 0px -162px;
+		width: 220px;
+		height: 30px;
+	}
+
+	.Infobox_brd_right, .Infobox_brd_corner {
+		width: 11px;
+		right: 0px;
+	}
+
+	.Infobox_brd_bottom, .Infobox_brd_corner {
+		height: 11px;
+		bottom: 0px;
+	}
+
+	.Infobox_brd_right {
+		background: url(../skin/win_Vsprites.png);
+		background-position: -11px 0px;
+	}
+
+	.Infobox_brd_bottom {
+		background: url(../skin/win_Hsprites.png);
+		background-position: 0px -11px;
+	}
+
+	.Infobox_brd_corner {
+		background: url(../skin/win_sprites.png);
+		background-position: -11px -11px;
+	}
+
+	.Infobox_realname {
+		font-size: 14px;
+		color: #189fcc;
+		text-shadow: 0 0 10px #189fcc;
+		font-weight: bold;
+	}
+
+	.Infobox_icon {
+		margin-top: 10px;
+		margin-bottom: 5px;
+	}
+
+
+/**
+*	StarOS Login area
+**/
+#StarOS_Login {
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	width: 220px;
+	height: 100px;
+	z-index: 40;
+}
+
+	.SLogin_userField, .SLogin_passField {
+		right: 0px;
+		width: 120px;
+	}
+
+	.SLogin_user {
+		top: 3px;
+	}
+
+	.SLogin_userField {
+		top: 0px;
+	}
+
+	.SLogin_pass {
+		top: 28px;
+	}
+
+	.SLogin_passField {
+		top: 25px;
+	}
+
+	.SLogin_buttonDisc {
+		background:url(../skin/gui_sprites.png);
+		background-position: -30px 0px;
+		width: 104px;
+		height: 44px;
+		right: 0px;
+		bottom: 0px;
+	}
+
+	.SLogin_buttonDisc:hover {
+		background-position: -134px 0px;
+	}
+
+	.SLogin_buttonConn {
+		background:url(../skin/gui_sprites.png);
+		background-position: -30px -44px;
+		width: 104px;
+		height: 44px;
+		right: 0px;
+		bottom: 0px;
+	}
+
+	.SLogin_buttonConn:hover {
+		background-position: -134px -44px;
+	}
+
+
+#Starmap_debug {
+	z-index: 30;
+	font-size: 8px;
+	left: -11px;
+	bottom: -11px;
+}
+
+	.Debug_mouseX {
+		top: 48px;
+	}
+
+	.Debug_mouseY {
+		top: 63px;
+	}
+
+	.Debug_currView {
+		left: 100px;
+		top: 0px;
+	}
+
+	.Debug_prevView {
+		left: 100px;
+		top: 15px;
+	}
+
+	.Debug_currCoords {
+		left: 100px;
+		top: 30px;
+	}

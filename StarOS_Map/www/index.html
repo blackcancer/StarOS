@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+
+		<title>StarOS Map</title>
+
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="Content-Language" content="fr"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+		<meta name="Author" content="Blackcancer"/>
+		<meta name="Description" content="A starmap for StarMade, this project is sub-project of StarOS"/>
+		<meta name="Keywords" content="starmap, map, StarMade, StarOS"/>
+
+		<link type="image/x-icon"	rel="shortcut icon"	href="favicon.ico" />
+		<link type="image/x-icon"	rel="icon"			href="favicon.ico" />
+		<link type="text/css"		rel="stylesheet"	href="css/_blank.css" media="all" id="StarOSTheme"/>
+
+		<!--### Loading Librairy ### -->
+		<script type="text/javascript" src="scripts/lib/socket.io.js"></script>
+		<script type="text/javascript" src="scripts/lib/mrdoobThree.min.js"></script>
+		<script type="text/javascript" src="scripts/lib/THREEx.FullScreen.js"></script>
+		<script type="text/javascript" src="scripts/lib/THREEx.KeyboardState.js"></script>
+		<script type="text/javascript" src="scripts/lib/OrbitControls.js"></script>
+		<script type="text/javascript" src="scripts/lib/Detector.js"></script>
+		<script type="text/javascript" src="scripts/lib/Stats.js"></script>
+
+		<!--### Custom Shader Code ###-->
+		<script id="vertexShader" type="x-shader/x-vertex">
+			varying vec3 vNormal;
+			void main() 
+			{
+				vNormal = normalize( normalMatrix * normal );
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+			}
+		</script>
+
+		<!--### fragment shader a.k.a. pixel shader ###-->
+		<script id="fragmentShader" type="x-shader/x-vertex"> 
+			varying vec3 vNormal;
+			void main() 
+			{
+				float intensity = pow( 0.7 - dot( vNormal, vec3( 0.0, 0.0, 1.0 ) ), 4.0 ); 
+				gl_FragColor = vec4( 1.0, 0.4, 0.0, 1.0 ) * intensity;
+			}
+		</script>
+
+		<!--### Loading StarOS ### -->
+		<script type="text/javascript" src="scripts/StarOS_Map/StarOS_Map.js"></script>
+		<script type="text/javascript" src="scripts/StarOS_Map/main.js"></script>
+
+	</head>
+
+	<body>
+	</body>
+</html>

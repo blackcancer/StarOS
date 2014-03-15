@@ -1,0 +1,210 @@
+/*
+	Product: Window stylesheet of StarOS Map
+	Description: This stylesheet contain all Window ans GUI balises css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 5.0-rev00101					Date: 2013-12-28
+	Theme Name: Neon
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+.Window_body {
+}
+
+	.Window_content {
+		background: url(../skin/win_background.png);
+	}
+
+	/* Borders's background */
+	.Window_brd_leftTop, .Window_brd_rightTop,
+	.Window_brd_leftBottom, .Window_brd_rightBottom {
+		background: url(../skin/win_sprites.png);
+	}
+
+	.Window_brd_left, .Window_brd_right {
+		background: url(../skin/win_Vsprites.png);
+	}
+
+	.top, .Window_brd_top, .Window_brd_bottom {
+		background: url(../skin/win_Hsprites.png);
+	}
+
+	/* Resise borders */
+	.Window_brd_leftTop, .Window_brd_rightTop, .Window_brd_left,
+	.Window_brd_right, .Window_brd_leftBottom, .Window_brd_rightBottom {
+		width: 11px;
+	}
+
+	.Window_brd_leftTop, .Window_brd_top, .Window_brd_rightTop,
+	.Window_brd_leftBottom, .Window_brd_bottom, .Window_brd_rightBottom {
+		height: 11px;
+	}
+
+
+	/* Background position */
+	.Window_brd_leftTop {
+		background-position: 0px 0px;
+	}
+
+	.Window_brd_rightTop {
+		background-position: -11px 0px;
+	}
+
+	.Window_brd_leftBottom {
+		background-position: 0px -11px;
+	}
+
+	.Window_brd_rightBottom {
+		background-position: -11px -11px;
+	}
+
+	.Window_brd_top {
+		background-position: 0px 0px;
+	}
+
+	.Window_brd_bottom {
+		background-position: 0px -11px;
+	}
+
+	.Window_brd_left {
+		background-position: 0px 0px;
+	}
+
+	.Window_brd_right {
+		background-position: -11px 0px;
+	}
+
+
+.GUI_checkbox:before {
+	background: url(../skin/gui_sprites.png);
+	background-position: 0px 0px;
+	width: 15px;
+	height: 15px;
+	margin: 0px;
+	padding: 0px;
+	display: inline-block;
+	line-height: 15px;
+	font-family: "Neuropolitical Rg";
+	font-size: 10px;
+	color: #b4ffff;
+	content: attr(value);
+}
+
+.GUI_checkbox:hover:before {
+	background-position: -15px 0px;
+}
+
+.GUI_checkbox:checked:before {
+	background-position: 0px -15px;
+}
+
+.GUI_checkbox:checked:hover:before {
+	background-position: -15px -15px;
+}
+
+.GUI_button{
+	border: none;
+	outline:none;
+	font-size: 10px;
+	font-family: "Neuropolitical Rg";
+	color: #b4ffff;
+	text-shadow: 0 0 10px #80ffff;
+}
+
+.GUI_button:hover{
+	border: none;
+	outline:none;
+	text-shadow: 0 0 15px #80ffff, 0 0 10px #80ffff, 0 0 5px #80ffff;
+}
+
+.GUI_textField{
+	background: #000;
+	border: 1px solid #b4ffff;
+	border-radius: 5px;
+	box-shadow: 0 0 1px #b4ffff, inset 0 0 1px #b4ffff, 0 0 5px #80ffff;
+	font-family: "Neuropolitical Rg";
+	font-size: 10px;
+	color: #b4ffff;
+}
+
+.GUI_textField::-webkit-input-placeholder, .GUI_textField::-moz-placeholder, .GUI_textField:-moz-placeholder, .GUI_textField:-ms-input-placeholder {
+	color: #558282;
+}
+
+.GUI_textField:focus {
+	border: 1px solid rgba(75,125,210,0.9);
+	box-shadow: 0 0 1px rgba(75,125,210,0.9), inset 0 0 1px rgba(75,125,210,0.9), 0 0 5px rgba(115,150,210,0.9);
+}
+
+.Dial_ok {
+	background: url(../skin/gui_sprites.png);
+	background-position: -195px -88px;
+	position: absolute;
+	bottom: 0px;
+	width: 40px;
+	height: 22px;
+	font-size: 12px;
+}
+
+.Dial_ok:hover {
+	background-position: -195px -110px;
+}
+
+#StarOS_property {
+}
+
+	.Property_theme {
+		line-height: 24px;
+	}
+
+	.Property_font {
+		top: 26px;
+		line-height: 24px;
+	}
+
+	.Property_size {
+		right: 50px;
+		top: 26px;
+		line-height: 24px;
+	}
+
+	.Property_showcase {
+		top: 80px;
+	}
+
+	.Property_themeSelec {
+		left: 50px;
+	}
+
+	.Property_fontSelec {
+		left: 50px;
+		top: 26px;
+	}
+
+	.Property_sizeSelec {
+		right: 0px;
+		top: 26px;
+	}
+
+	.Property_buttonOk {
+		width: 35px;
+		height: 18px;
+		right: 176px;
+		bottom: 0px;
+	}
+
+	.Property_buttonCancel {
+		width: 78px;
+		height: 18px;
+		right: 88px;
+		bottom: 0px;
+	}
+
+	.Property_buttonApply {
+		width: 78px;
+		height: 18px;
+		right: 0px;
+		bottom: 0px;
+	}
