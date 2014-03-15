@@ -3,12 +3,12 @@ StarOS_Map
 
 Description: A starmap for StarMade, this project is subproject of StarOS.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.5-rev00011
-Date: 2014-01-6
+Version: 0.5-rev00011  
+Date: 2014-01-6  
 
 By Blackcancer  
-website: http://initsysrev.net
-support: blackcancer@initsysrev.net
+website: http://initsysrev.net  
+support: blackcancer@initsysrev.net  
 
 
 
@@ -17,6 +17,19 @@ support: blackcancer@initsysrev.net
 -	PHP 5+
 
 ### ==> CHANGELOG <==
+5.0-rev00101:
+-	Update StarOS Map to work with StarMade v0.1+ (old versoin still works)
+-	Add control box  
+-	Add entity type 'Turret'  
+-	Add property windows with theme and font selection  
+-	Add translation files  
+-	Add node.js server for better loading of StarOS's json files  
+-	Reworked debug  
+-	Reworked informations for more style customization  
+-	Reworked loading window  
+-	New JavaScript Class for developpement (need more optimization and functions)  
+-	Removing fullscreen key (this event start when you use login field, it's realy annoying)  
+
 5.0-rev00011:
 -	Change entity files generation (improve map loading)
 -	Add Solar systems view
