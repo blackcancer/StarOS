@@ -10,9 +10,9 @@
 ### END INIT INFO
 
 
-DAEMON_ARGS="/srv/StarOS/socketServ.js"
+DAEMON_ARGS="/srv/StarOS/server.js"
 DESC="StarOS server"
-NODEUSER=www-data:www-data
+NODEUSER=staros:staros
 RUN=/var/run
 NAME=node
 DAEMON=/usr/bin/$NAME
