@@ -10,9 +10,8 @@
 ### END INIT INFO
 
 
-DAEMON_ARGS="/srv/StarOS/server.js"
+DAEMON_ARGS="/opt/StarOS/server.js"
 DESC="StarOS server"
-NODEUSER=staros:staros
 RUN=/var/run
 NAME=node
 DAEMON=/usr/bin/$NAME
@@ -48,14 +47,14 @@ do_start(){
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
-	start-stop-daemon --start --quiet --chuid $NODEUSER --pidfile $PIDFILE --background \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --background --name $INIT_SCRIPT_NAME \
 	--exec $DAEMON --test > /dev/null \
 	|| { 
 		log_progress_msg "$DESC apparently already running"
 		return 1
 	}
 
-	start-stop-daemon --start --quiet --chuid $NODEUSER --pidfile $PIDFILE --make-pidfile --background \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile --background --name $INIT_SCRIPT_NAME \
 	--exec $DAEMON -- \
 	$DAEMON_ARGS \
 	|| {
@@ -71,14 +70,14 @@ do_stop(){
 	#   1 if daemon was already stopped
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
-	start-stop-daemon --stop --quiet --chuid $NODEUSER --retry=TERM/30/KILL/5 --pidfile $PIDFILE \
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $INIT_SCRIPT_NAME \
 	--name $DAEMON
 	sleep 1
 	RETVAL="$?"
 	[ "$RETVAL" = 2 ] && return 2
 
 	[ "$VERBOSE" != no ] && [ "$RETVAL" = 1 ] && log_failure_msg "SIGKILL failed => hardkill $DESC"
-	start-stop-daemon --stop --quiet --chuid $NODEUSER --oknodo --retry=0/3/KILL/5 --pidfile $PIDFILE \
+	start-stop-daemon --stop --quiet --oknodo --retry=0/3/KILL/5 --pidfile $PIDFILE --name $INIT_SCRIPT_NAME \
 	--exec $DAEMON -- \
 	$DAEMON_ARGS
 	[ "$?" = 2 ] && return 2
@@ -94,7 +93,7 @@ do_reload(){
 	# restarting (for example, when it is sent a SIGHUP),
 	# then implement that here.
 	#
-	start-stop-daemon --stop --quiet --signal 1 --pidfile $PIDFILE  --chuid $NODEUSER --name $NAME
+	start-stop-daemon --stop --quiet --signal 1 --pidfile $PIDFILE  --name $INIT_SCRIPT_NAME
 	return 0
 }
 
@@ -136,7 +135,7 @@ do_status(){
 }
 
 running(){
-	RUNSTAT=$(start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $NODEUSER --background --exec $DAEMON --test > /dev/null)
+	RUNSTAT=$(start-stop-daemon --start --quiet --pidfile $PIDFILE --background --exec $DAEMON --test > /dev/null)
 	if [ "$?" = 1 ]; then
 		echo y
 	fi
@@ -161,9 +160,6 @@ case "$1" in
 			2) log_end_msg 1 ;;
 		esac
 	;;
-
-	#reload|force-reload)
-	#;;
 
 	restart|force-reload)
 		log_begin_msg "Restarting $DESC..."
