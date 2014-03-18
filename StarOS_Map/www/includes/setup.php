@@ -4,7 +4,7 @@
 		Description: this file is used only for setup and update the starmap
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.1-rev00012					Date: 2013-12-28
+		FileVersion: 0.1-rev00013					Date: 2013-12-28
 		By Blackcancer
 
 		website: http://initsysrev.net
@@ -132,7 +132,7 @@
 		}
 
 		asort($database);
-		file_put_contents($jsonDir."Entities/DATA-BASE.json", json_encode($database, JSON_FORCE_OBJECT));
+		file_put_contents($jsonDir."Entities/DATABASE.json", json_encode($database, JSON_FORCE_OBJECT));
 	}
 
 	function createFactionDatabase($dir, $SMD) {
