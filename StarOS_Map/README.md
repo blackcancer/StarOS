@@ -13,8 +13,9 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> Requierement <==
--	Apache
--	PHP 5+
+-	A web server with PHP 5.4+ ([Ubuntu - LAMP](https://help.ubuntu.com/community/ApacheMySQLPHP) || [Windows - Wamp](http://www.wampserver.com/en/))  
+-	Node.js v0.10.25 ([Ubuntu - Node.js](http://askubuntu.com/questions/49390/how-do-i-install-the-latest-version-of-node-js) || [Windows - Node.js](http://nodejs.org/download/))  
+-	For Windows user, php need to be in environment variables. ([Add PHP](http://www.php.net/manual/en/install.windows.commandline.php))  
 
 ### ==> CHANGELOG <==
 5.0-rev00101:
@@ -70,47 +71,21 @@ support: blackcancer@initsysrev.net
 -	Get information relative to an entity when you click on it.
 -	Show starmade entity in 3D space.
 -	Generate SQL database from starmade file.
-
-
-
+  
+  
 ### ==> SETUP <==
 
--	if you already have StarOS Map before v0.5 you need to remove it
--	copy all file in your site.
--	In shell, type: `php setup.php DIRECTORY/OF/YOUR/GAME`.
--	Update your map with command `php setup.php DIRECTORY/OF/YOUR/GAME`
+-	[Wiki EN - Install](https://github.com/blackcancer/StarOS/wiki/1.2-Install)  
+-	[Wiki FR - Installation](https://github.com/blackcancer/StarOS/wiki/1.2-Installation)  
+  
+  
+### ==> Configure <==
 
+-	[Wiki EN - Configure](https://github.com/blackcancer/StarOS/wiki/1.3-Configure)  
+-	[Wiki FR - Configuration](https://github.com/blackcancer/StarOS/wiki/1.3-Configuration)  
+  
+  
+### ==> Usage <==
 
-	
-### ==> DOCUMENTATION <==
-
-StarOS_Map can have different arguments:  
-
-```javascript
-parentId: (string),
-showShip: (bool),		//default false
-showAsteroid: (bool),	//default false
-showEntInf:{
-	faction: (bool),	//default false, show faction in Informations:
-	mass: (bool),		//default false, show mass in Informations:
-	power: (bool),		//default false, show power in Informations:
-	shield: (bool)		//default false, show shield in Informations:
-},
-useLogin: (bool),		//default false, use StarOS Login
-debug: (bool),			//default false
-FsKey: (string),		//default "f"
-view:{
-	aspect: (int),  	//default width / height
-	angle: (int),		//default 45
-	near: (int),		//default 0.1
-	far: (int)			//default 4100000
-}
-```
-
-each arguments are optional except parentId.  
-"showShip" set true to show ship in starmap.  
-"showAsteroid" set true to show asteroids in starmap.  
-"debug" set true to show debug information like fps.  
-"FsKey" is the default key used for switch to fullscreen, only char and number are allowed.  
-"view" this options are relative to three.js camera, use only if you now what you are doing.  
-you can use "space" to reset camera.  
+-	[Wiki EN - Use](https://github.com/blackcancer/StarOS/wiki/1.4-Use)  
+-	[Wiki FR - Utilisation](https://github.com/blackcancer/StarOS/wiki/1.4-Utilisation)
