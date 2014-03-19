@@ -16,6 +16,7 @@ sudo chmod +x /etc/init.d/staros
 sudo update-rc.d staros defaults
 
 echo INSTALL SITE
+sudo mkdir -p $SITE_PATH
 sudo cp -R ./www/* $SITE_PATH
 sudo chmod -R 755 $SITE_PATH
 

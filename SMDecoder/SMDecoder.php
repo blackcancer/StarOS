@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00004						Date: 2014-01-03
+		FileVersion: 0.6-rev00005						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -561,6 +561,7 @@
 				"wepContr",
 				"PointDist",
 				"inventory",
+				"mem",
 				"f0",
 				"0FN",
 				"FN",
@@ -654,9 +655,12 @@
 						if(is_array($resp) && isset($resp['name'])){
 
 							if(in_array($resp['name'], $listName)){
+								while(array_key_exists($resp['name'] . $i, $data['data'])){
+									$i++;
+								}
 								$offset = $resp['name'] . $i;
 								$data['data'][$offset] = $resp['data'];
-								$i++;
+								$i = 0;
 							}
 							else{
 								$data['data'][$resp['name']] = $resp['data'];
@@ -700,9 +704,12 @@
 						if(is_array($resp) && isset($resp['name'])){
 
 							if(in_array($resp['name'], $listName)){
+								while(array_key_exists($resp['name'] . $i, $data)){
+									$i++;
+								}
 								$offset = $resp['name'] . $i;
 								$data[$offset] = $resp['data'];
-								$i++;
+								$i = 0;
 							}
 							else{
 								$data[$resp['name']] = $resp['data'];
@@ -891,11 +898,18 @@
 				$data[$id]['description']	= $factions[$key][2];
 				$data[$id]['ranks']			= array();
 
-				for($j = 0; $j < count($factions[$key]['mem']); $j++){
-					$player	= $factions[$key]['mem'][$j][0];
-					$rank	= $factions[$key]['mem'][$j][1];
+				for($j = 0; $j < count($factions[$key]['mem0']); $j++){
+					$player	= $factions[$key]['mem0'][$j][0];
+					$rank	= $factions[$key]['mem0'][$j][1];
 
 					$data[$id]['member'][$player] = $rank;
+				}
+
+				$data[$id]['pEnemies'] = array();
+				for($j = 0; $j < count($factions[$key]['mem1']); $j++){
+					$player	= $factions[$key]['mem1'][$j];
+
+					array_push($data[$id]['pEnemies'], $player);
 				}
 
 				//Populate $data[$id]['ranks']
