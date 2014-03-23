@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00005						Date: 2014-01-03
+		FileVersion: 0.6-rev00006						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -20,7 +20,7 @@
 	define("NULL32", "00000000000000000000000000000000");
 	define("NULL64", "0000000000000000000000000000000000000000000000000000000000000000");
 	define("NULLFLOAT", 0.0);
-	
+
 	define("TAG_FINISH", 		chr(0));
 	define("TAG_STR_BYTE", 		chr(1));
 	define("TAG_STR_SHORT", 	chr(2));
@@ -36,7 +36,7 @@
 	define("TAG_STR_LIST",		chr(12));
 	define("TAG_STR_STRUCT",	chr(13));
 	define("TAG_STR_SERIAL",	chr(14));
-	
+
 	define("TAG_UNK",			chr(241));		//added to dev 0.107 bit length: 136
 	define("TAG_ARRAYDATA",		chr(243));
 	define("TAG_INT3",			chr(246));
@@ -452,12 +452,24 @@
 			for($chunk = 0; $chunk < $numChunks; $chunk++){
 				$chunkDict = array();
 				$chunkDict['blocks'] = array();
+
+				//retro-compatibility support
+				if($data['int_a'] >= 1){
+					$chunkDict['byte_a'] = $this->readByte();
+				}
+
 				$chunkDict['timestamp'] = $this->readInt64();
 				$chunkDict['pos'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
 				$chunkDict['type'] = $this->readByte();
 				$inLen = $this->readInt32();
 
-				$inData = $this->readBytes(5120-25);
+				//retro-compatibility support
+				$dl = 5120 - 25;
+				if($data['int_a'] >= 1){
+					$dl = 5120 - 26;
+				}
+
+				$inData = $this->readBytes($dl);
 				$outData = gzuncompress($inData);
 
 				for($block = 0; $block < 16*16*16; $block++){

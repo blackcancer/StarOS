@@ -3,7 +3,7 @@ SMDecoder Class
 
 Description: Intergrate Starmade files within your own projects.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.6-rev00003  
+Version: 0.6-rev00006  
 SM-Version: dev build 0.107  
 Date: 2014-01-03  
 
@@ -15,6 +15,14 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
+0.6-rev00006:
+-	Update smd2 decoding for 0.1+ support
+
+0.6-rev00005:
+-	Add personnal enemies support for FACTIONS.fac file
+
+0.6-rev00004:
+-	Add retro-compatibility for StarMade  < 0.1
 
 0.6-rev00003:
 -	Add new tag chr(241) actual unknown
