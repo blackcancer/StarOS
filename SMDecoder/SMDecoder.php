@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00007						Date: 2014-01-03
+		FileVersion: 0.6-rev00008						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -1082,9 +1082,15 @@
 				'lastMod'	=> $sc['2'],
 				'seed'		=> $sc['3'],
 				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'byte_a'	=> $sc['5'],
 				'genId'		=> $sc['creatoreId']
 			);
+
+			if(array_key_exists('5', $sc)){
+				$creatoreId['byte_a'] = $sc['5'];
+			}
+			else {
+				$creatoreId['byte_a'] = -1;
+			}
 
 			//inventory part
 			$inv = $ent['ShopSpaceStation2']['inventory0'];
@@ -1142,20 +1148,41 @@
 				'minPos' => $minPos
 			);
 
-			//docking part
-			$dockedToPos = array(
-				'x' => $sc[0][1][0],
-				'y' => $sc[0][1][1],
-				'z' => $sc[0][1][2]
-			);
+			//docking part, test for retro-compatibility
+			if(array_key_exists('dock', $sc)){
+				//older version
+				$dockedToPos = array(
+					'x' => $sc['dock']['dockedToPos'][0],
+					'y' => $sc['dock']['dockedToPos'][1],
+					'z' => $sc['dock']['dockedToPos'][2]
+				);
 
-			$dock = array(
-				'dockedTo'		=> $sc[0][0],
-				'dockedToPos'	=> $dockedToPos,
-				'byte_a'		=> $sc[0][2],
-				'byte_b'		=> $sc[0][3],
-				's'				=> $sc[0]['s'],
-			);
+				$dock = array(
+					'dockedTo'		=> $sc['dock']['dockedTo'],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc['dock'][0],
+					'byte_b'		=> $sc['dock'][1],
+					's'				=> $sc['dock']['s'],
+				);
+
+			}
+			else{
+				//version 0.1+
+				$dockedToPos = array(
+					'x' => $sc[0][1][0],
+					'y' => $sc[0][1][1],
+					'z' => $sc[0][1][2]
+				);
+
+				$dock = array(
+					'dockedTo'		=> $sc[0][0],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc[0][2],
+					'byte_b'		=> $sc[0][3],
+					's'				=> $sc[0]['s'],
+				);
+
+			}
 
 			//transform part
 			$transX = array(
@@ -1260,9 +1287,15 @@
 				'lastMod'	=> $sc['2'],
 				'seed'		=> $sc['3'],
 				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'byte_a'	=> $sc['5'],
 				'genId'		=> $sc['creatoreId']
 			);
+
+			if(array_key_exists('5', $sc)){
+				$creatoreId['byte_a'] = $sc['5'];
+			}
+			else {
+				$creatoreId['byte_a'] = -1;
+			}
 
 			//final array
 			$data = array(
@@ -1467,20 +1500,41 @@
 				'minPos' => $minPos
 			);
 
-			//docking part
-			$dockedToPos = array(
-				'x' => $sc[0][1][0],
-				'y' => $sc[0][1][1],
-				'z' => $sc[0][1][2]
-			);
+			//docking part, test for retro-compatibility
+			if(array_key_exists('dock', $sc)){
+				//older version
+				$dockedToPos = array(
+					'x' => $sc['dock']['dockedToPos'][0],
+					'y' => $sc['dock']['dockedToPos'][1],
+					'z' => $sc['dock']['dockedToPos'][2]
+				);
 
-			$dock = array(
-				'dockedTo'		=> $sc[0][0],
-				'dockedToPos'	=> $dockedToPos,
-				'byte_a'		=> $sc[0][2],
-				'byte_b'		=> $sc[0][3],
-				's'				=> $sc[0]['s'],
-			);
+				$dock = array(
+					'dockedTo'		=> $sc['dock']['dockedTo'],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc['dock'][0],
+					'byte_b'		=> $sc['dock'][1],
+					's'				=> $sc['dock']['s'],
+				);
+
+			}
+			else{
+				//version 0.1+
+				$dockedToPos = array(
+					'x' => $sc[0][1][0],
+					'y' => $sc[0][1][1],
+					'z' => $sc[0][1][2]
+				);
+
+				$dock = array(
+					'dockedTo'		=> $sc[0][0],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc[0][2],
+					'byte_b'		=> $sc[0][3],
+					's'				=> $sc[0]['s'],
+				);
+
+			}
 
 			//transform part
 			$transX = array(
@@ -1584,9 +1638,15 @@
 				'lastMod'	=> $sc['2'],
 				'seed'		=> $sc['3'],
 				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'byte_a'	=> $sc['5'],
 				'genId'		=> $sc['creatoreId']
 			);
+
+			if(array_key_exists('5', $sc)){
+				$creatoreId['byte_a'] = $sc['5'];
+			}
+			else {
+				$creatoreId['byte_a'] = -1;
+			}
 
 			//final array
 			$data = array(
@@ -1630,20 +1690,41 @@
 				'minPos' => $minPos
 			);
 
-			//docking part
-			$dockedToPos = array(
-				'x' => $sc[0][1][0],
-				'y' => $sc[0][1][1],
-				'z' => $sc[0][1][2]
-			);
+			//docking part, test for retro-compatibility
+			if(array_key_exists('dock', $sc)){
+				//older version
+				$dockedToPos = array(
+					'x' => $sc['dock']['dockedToPos'][0],
+					'y' => $sc['dock']['dockedToPos'][1],
+					'z' => $sc['dock']['dockedToPos'][2]
+				);
 
-			$dock = array(
-				'dockedTo'		=> $sc[0][0],
-				'dockedToPos'	=> $dockedToPos,
-				'byte_a'		=> $sc[0][2],
-				'byte_b'		=> $sc[0][3],
-				's'				=> $sc[0]['s'],
-			);
+				$dock = array(
+					'dockedTo'		=> $sc['dock']['dockedTo'],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc['dock'][0],
+					'byte_b'		=> $sc['dock'][1],
+					's'				=> $sc['dock']['s'],
+				);
+
+			}
+			else{
+				//version 0.1+
+				$dockedToPos = array(
+					'x' => $sc[0][1][0],
+					'y' => $sc[0][1][1],
+					'z' => $sc[0][1][2]
+				);
+
+				$dock = array(
+					'dockedTo'		=> $sc[0][0],
+					'dockedToPos'	=> $dockedToPos,
+					'byte_a'		=> $sc[0][2],
+					'byte_b'		=> $sc[0][3],
+					's'				=> $sc[0]['s'],
+				);
+
+			}
 
 			//transform part
 			$transX = array(
@@ -1735,9 +1816,15 @@
 				'lastMod'	=> $sc['2'],
 				'seed'		=> $sc['3'],
 				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'byte_a'	=> $sc['5'],
 				'genId'		=> $sc['creatoreId']
 			);
+
+			if(array_key_exists('5', $sc)){
+				$creatoreId['byte_a'] = $sc['5'];
+			}
+			else {
+				$creatoreId['byte_a'] = -1;
+			}
 
 			//final array
 			$data = array(

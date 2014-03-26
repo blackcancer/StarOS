@@ -15,6 +15,9 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
+0.6-rev00008:
+-	Correction for shop, planet, station and ship retro-compatibility
+
 0.6-rev00007:
 -	Correction of shop retro-compatibility
 
