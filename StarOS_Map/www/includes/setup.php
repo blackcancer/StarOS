@@ -35,8 +35,8 @@
 	echo "Loading catalog information...\n";
 	createCatalogDatabase($serverDatabase, $SMD);
 
-	echo "Loading blueprint files...\n";
-	createBlueprintDatabase($blueprintsDir, $SMD);
+	//echo "Loading blueprint files...\n";
+	//createBlueprintDatabase($blueprintsDir, $SMD);
 
 	function createEntityDatabase($dir, $SMD) {
 		$entityFiles	= glob($dir . "ENTITY_*", GLOB_NOSORT); // Find all of the playerstate files
