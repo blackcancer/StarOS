@@ -35,8 +35,8 @@
 	echo "Loading catalog information...\n";
 	createCatalogDatabase($serverDatabase, $SMD);
 
-	//echo "Loading blueprint files...\n";
-	//createBlueprintDatabase($blueprintsDir, $SMD);
+	echo "Loading blueprint files...\n";
+	createBlueprintDatabase($blueprintsDir, $SMD);
 
 	function createEntityDatabase($dir, $SMD) {
 		$entityFiles	= glob($dir . "ENTITY_*", GLOB_NOSORT); // Find all of the playerstate files
@@ -168,9 +168,9 @@
 			}
 
 			for($j = 0; $j < count($modeles); $j++){
-				$smd2 = $SMD->decodeSMFile($modeles[$i]);
+				$smd2 = $SMD->decodeSMFile($modeles[$j]);
 				
-				$fileName = explode("/", $modeles[$i]);
+				$fileName = explode("/", $modeles[$j]);
 				$fileName = $fileName[count($fileName) - 1];
 				$fileName = substr($fileName,0 , -4) . "json";
 
