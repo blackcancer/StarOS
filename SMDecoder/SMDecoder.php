@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00008						Date: 2014-01-03
+		FileVersion: 0.6-rev00011						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -121,11 +121,17 @@
 				case "smbpl":
 					$fileSize = filesize($file);
 					$ent = $this->decodeLogic($fileSize);
+					if($formated){
+						$ent = $this->formatLogic($ent);
+					}
 					break;
 
 				case "smbpm":
 					$fileSize = filesize($file);
 					$ent = $this->decodeMeta($fileSize);
+					if($formated){
+						$ent = $this->formatMeta($ent);
+					}
 					break;
 
 				case "smd2":
@@ -426,7 +432,7 @@
 
 				if($chunkId != -1){
 					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
-					$pos = array(16 * ($pos[0] - 8), 16 * ($pos[1] - 8), 16 * ($pos[2] - 8));
+					$pos = array(($pos[0] - 8), ($pos[1] - 8), ($pos[2] - 8));
 					$posStr = $pos[0].','.$pos[1].','.$pos[2];
 					
 					$data['chunkIndex'][$posStr] = array(
@@ -442,7 +448,7 @@
 
 				if($timestamp > 0){
 					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
-					$pos = array(16 * ($pos[0] - 8), 16 * ($pos[1] - 8), 16 * ($pos[2] - 8));
+					$pos = array(($pos[0] - 8), ($pos[1] - 8), ($pos[2] - 8));
 					$posStr = $pos[0].','.$pos[1].','.$pos[2];
 
 					$data['chunkTimestamps'][$posStr] = $timestamp;
@@ -488,7 +494,7 @@
 						$chunkDict['blocks'][$posStr] = array(
 							'id' => $blockId,
 							'hp' => $this->bits($blockData, 11, 9),
-							'active' => $this->bits($blockData, 20, 1),
+							'isActive' => $this->bits($blockData, 20, 1),
 							'orient' => $this->bits($blockData, 21, 3)
 						);
 					}
@@ -572,6 +578,7 @@
 				"AIElement",
 				"wepContr",
 				"PointDist",
+				"D",
 				"inventory",
 				"mem",
 				"f0",
@@ -1944,6 +1951,107 @@
 			return $data;
 		}
 
+		private function formatLogic($ent){
+			$data = array();
+			$data['int_a'] = $ent['int_a'];
+			$data['controllers'] = array();
+
+			for($i = 0; $i < count($ent['controllers']); $i++){
+				$pos = $ent['controllers'][$i]['pos'][0] . "," . $ent['controllers'][$i]['pos'][1] . "," . $ent['controllers'][$i]['pos'][2];
+				$data['controllers'][$pos] = array();
+
+				foreach($ent['controllers'][$i]['q'] as $key => $val){
+					if(count($val) > 0){
+						if(!array_key_exists($key, $data['controllers'][$pos])){
+							$data['controllers'][$pos][$key] = array();
+							foreach($ent['controllers'][$i]['q'][$key] as $subKey => $subVal){
+								array_push($data['controllers'][$pos][$key], $subVal[0] . "," . $subVal[1] . "," . $subVal[2]);
+							}
+						}
+					}
+				}
+
+			}
+
+			return $data;
+		}
+
+		private function formatMeta($ent){
+			$data = array();
+			$data['int_a'] = $ent['int_a'];
+			$data['byte_a'] = $ent['byte_a'];
+			if(array_key_exists('byte_b', $ent)){
+				$data['byte_b'] = $ent['byte_b'];
+			}
+			if(array_key_exists('gzip', $ent)){
+				$data['gzip'] = $ent['gzip'];
+			}
+			if(array_key_exists('docked', $ent)){
+				$data['docked'] = $ent['docked'];
+			}
+			if(array_key_exists('container', $ent)){
+				$data['container'] = array();
+
+				$data['container']['controllerStructure'] = $ent['container']['controllerStructure'];
+				$data['container']['shipMan0'] = array();
+
+				foreach($ent['container']['shipMan0'] as $wep => $val){
+					$comp = "";
+					switch($wep){
+						case 'wepContr0':
+							$comp = '6';
+						break;
+
+						case 'wepContr1':
+							$comp = '38';
+						break;
+
+						case 'wepContr2':
+							$comp = '54';
+						break;
+
+						case 'wepContr3':
+							$comp = '46';
+						break;
+					}
+
+					$data['container']['shipMan0'][$comp] = array();
+
+					foreach($ent['container']['shipMan0'][$wep] as $d => $val){
+						$data['container']['shipMan0'][$comp][$d] = array();
+
+						foreach($ent['container']['shipMan0'][$wep][$d] as $PontDist => $val){
+							$data['container']['shipMan0'][$comp][$d][$PontDist] = array();
+
+							$cPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][0] . ",";
+							$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][1] . ",";
+							$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][2];
+
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['controller'] = $cPos;
+
+							$idPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][0] . ",";
+							$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][1] . ",";
+							$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][2];
+
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['idPos'] = $idPos;
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'] = array();
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][0] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][0][1];
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][1] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][1][1];
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][2] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][2][1];
+							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][3] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][3][1];
+						}
+
+					}
+
+				}
+
+				$data['container']['pw'] = $ent['container']['pw'];
+				$data['container']['sh'] = $ent['container']['sh'];
+				$data['container']['ex'] = $ent['container']['ex'];
+			}
+
+			return $data;
+		}
 
 		//============================= Binary Decoders =============================//
 
