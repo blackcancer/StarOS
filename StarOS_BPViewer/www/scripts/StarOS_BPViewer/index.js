@@ -194,6 +194,18 @@
 
 		_divRenderer.appendChild(dom.div);
 
+		if(!_embedded){
+			dom.div.style.left = document.getElementById('BPViewer_SelShip').offsetWidth + 'px';
+		}
+		else {
+			var space = PARENT.offsetWidth - (dom.informations.offsetWidth + dom.weapons.offsetWidth + dom['?'].offsetWidth + 5);
+			dom.div.style.marginLeft = "0px";
+			dom.div.style.width = "100%";
+			dom.informations.style.left = space / 2 + "px";
+			dom.weapons.style.left = space / 2 + dom.informations.offsetWidth + 5 + "px";
+			dom['?'].style.right = "0px";
+		}
+
 		function onInfoClick(event){
 			event.preventDefault();
 
