@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00011						Date: 2014-01-03
+		FileVersion: 0.6-rev00013						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -154,9 +154,9 @@
 			$tag = $this->readByte();
 
 			while($tag != ''){
-				
+
 				$resp = $this->parseTag($tag);
-				
+
 				if(isset($resp['name'])){
 					$data[$resp['name']] = $resp['data'];
 				}
@@ -338,6 +338,7 @@
 			$return['byte_a'] = $this->readInt8();
 
 			if($return['byte_a'] == 3){
+
 				$numDocked = $this->readInt32();
 				$return['docked'] = array();
 
@@ -346,6 +347,7 @@
 					$q = array($this->readInt32(), $this->readInt32(), $this->readInt32());
 					$a = array($this->readFloat(), $this->readFloat(), $this->readFloat());
 					$docking = $this->readInt16();
+					$this->readByte();
 
 					$arr = array(
 						'name' => $name,
@@ -2020,25 +2022,31 @@
 					foreach($ent['container']['shipMan0'][$wep] as $d => $val){
 						$data['container']['shipMan0'][$comp][$d] = array();
 
-						foreach($ent['container']['shipMan0'][$wep][$d] as $PontDist => $val){
-							$data['container']['shipMan0'][$comp][$d][$PontDist] = array();
+						if(array_key_exists('PointDist0', $ent['container']['shipMan0'][$wep][$d])){
+							foreach($ent['container']['shipMan0'][$wep][$d] as $PontDist => $val){
 
-							$cPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][0] . ",";
-							$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][1] . ",";
-							$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][2];
+								$data['container']['shipMan0'][$comp][$d][$PontDist] = array();
+								$cPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][0] . ",";
+								$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][1] . ",";
+								$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][2];
 
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['controller'] = $cPos;
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['controller'] = $cPos;
 
-							$idPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][0] . ",";
-							$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][1] . ",";
-							$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][2];
+								$idPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][0] . ",";
+								$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][1] . ",";
+								$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][2];
 
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['idPos'] = $idPos;
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'] = array();
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][0] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][0][1];
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][1] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][1][1];
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][2] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][2][1];
-							$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][3] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][3][1];
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['idPos'] = $idPos;
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'] = array();
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][0] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][0][1];
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][1] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][1][1];
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][2] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][2][1];
+								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][3] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][3][1];
+								if(array_key_exists(4, $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'])){
+									$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][4] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][4][1];
+								}
+
+							}
 						}
 
 					}

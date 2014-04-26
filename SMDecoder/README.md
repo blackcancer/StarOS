@@ -15,7 +15,11 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
-0.6-rev00010:
+0.6-rev00013:
+-	Correction of formatMeta()
+-	Correction of meta data decoder (docking byte)  
+
+0.6-rev00011:
 -	Add function formatLogic()  
 -	Add function formatMeta()  
 -	Correction of meta data decoder (multiple computers support)  
