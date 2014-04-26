@@ -1,0 +1,176 @@
+/*
+	Product: Window stylesheet of StarOS
+	Description: This stylesheet contain all Window ans GUI balises css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 5.0-rev00102					Date: 2013-12-28
+	Theme Name: Eve
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+.Window_body {
+}
+
+	.Window_content {
+		background: rgba(16,16,16,0.6);
+	}
+
+	.Window_border{
+		background: rgba(255,255,255,0.2);
+	}
+
+	/* Resise borders */
+	.Window_brd_leftTop, .Window_brd_rightTop, .Window_brd_left,
+	.Window_brd_right, .Window_brd_leftBottom, .Window_brd_rightBottom {
+		width: 11px;
+	}
+
+	.Window_brd_leftTop, .Window_brd_top, .Window_brd_rightTop,
+	.Window_brd_leftBottom, .Window_brd_bottom, .Window_brd_rightBottom {
+		height: 11px;
+	}
+
+
+.GUI_checkbox:before {
+	width: 15px;
+	height: 15px;
+	margin: 0px;
+	padding: 0px;
+	display: inline-block;
+	line-height: 20px;
+	font-size: 10px;
+	content: attr(value);
+}
+
+.GUI_checkbox:hover:before {
+	background-position: -15px 0px;
+}
+
+.GUI_checkbox:checked:before {
+	background-position: 0px -15px;
+}
+
+.GUI_checkbox:checked:hover:before {
+	background-position: -15px -15px;
+}
+
+.GUI_button {
+	background: url(../skin/menuBtn.png);
+	border: none;
+	outline:none;
+	font-size: 14px;
+	font-weight: bold;
+	color: #fff;
+}
+
+.GUI_button:hover {
+	color: #000;
+}
+
+.GUI_textField {
+	background: rgba(8,8,24,0.6);
+	border: 1px solid rgba(255,255,255,0.15);
+	font-size: 12px;
+	color: #ffffff;
+}
+
+.GUI_textField:focus {
+	outline: 1px solid rgba(75,125,210,0.9);
+}
+
+.GUI_textField::-webkit-input-placeholder, .GUI_textField::-moz-placeholder, .GUI_textField:-moz-placeholder, .GUI_textField:-ms-input-placeholder {
+	color: #558282;
+}
+
+.Dial_content {
+	width: 100%;
+	overflow: auto;
+}
+
+.Dial_ok {
+	position: absolute;
+	bottom: 0px;
+	width: 40px;
+	height: 22px;
+	font-size: 12px;
+}
+
+.Dial_ok:hover {
+	background-position: -195px -110px;
+}
+
+.GUI_contextmenu {
+	background: linear-gradient(#3a3a3a, black);
+	background: url(../skin/menuBtn.png);
+}
+
+.GUI_contextmenu .GUI_menuButton {
+	background: none;
+	border: none;
+	outline:none;
+	height: 18px;
+	color: #fff;
+}
+.GUI_contextmenu .GUI_menuButton:hover {
+	background: url(../skin/menuBtn.png);
+	height: 18px;
+}
+
+#StarOS_property {
+}
+
+	.Property_theme {
+		line-height: 24px;
+	}
+
+	.Property_font {
+		top: 26px;
+		line-height: 24px;
+	}
+
+	.Property_size {
+		right: 50px;
+		top: 26px;
+		line-height: 24px;
+	}
+
+	.Property_showcase {
+		top: 80px;
+	}
+
+	.Property_themeSelec {
+		left: 50px;
+	}
+
+	.Property_fontSelec {
+		left: 50px;
+		top: 26px;
+	}
+
+	.Property_sizeSelec {
+		right: 0px;
+		top: 26px;
+	}
+
+	.Property_buttonOk {
+		width: 35px;
+		height: 18px;
+		right: 176px;
+		bottom: 0px;
+	}
+
+	.Property_buttonCancel {
+		width: 78px;
+		height: 18px;
+		right: 88px;
+		bottom: 0px;
+	}
+
+	.Property_buttonApply {
+		width: 78px;
+		height: 18px;
+		right: 0px;
+		bottom: 0px;
+	}

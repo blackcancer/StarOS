@@ -1,0 +1,23 @@
+{
+	path: {
+		site:		'/var/www/',
+		json:		'/var/www/scripts/StarOS_json/',
+		starmade:	'/srv/starmade/',
+		log:		'/var/log/StarOS'
+	},
+
+	StarOS_serv: {
+		host:		'your-site.org',
+		port:		4243
+	},
+
+	StarMade_serv: {
+		host:		'your-site.org',
+		port:		4242
+	},
+
+	Site_serv:{
+		host:		'http://your-site.org',
+		port:		80
+	}
+}

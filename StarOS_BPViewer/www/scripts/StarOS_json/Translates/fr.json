@@ -1,0 +1,71 @@
+{
+	"BPViewer": {
+		"linkBox": {
+			"embed":	"intégrer",
+			"download":	"télécharger"
+		},
+		"propertyWin": {
+			"theme":		"theme",
+			"font":			"police",
+			"fontSize":		"taille",
+			"texture":		"texture pack",
+			"texSize":		"taille",
+			"skybox":		"skybox",
+			"normal":		"normal map",
+			"antialias":	"anti-aliasing",
+			"buttons": {
+				"ok":		"ok",
+				"cancel":	"annuler",
+				"apply":	"appliquer"
+			}
+		},
+		"noData": "pas de données",
+		"unknown": "inconnue",
+		"needApplyReload": "Vous devez actualiser votre page après\navoir appliqué les nouveaux paramètres."
+	},
+	"StarMade": {
+		"length":	"longueur",
+		"height":	"hauteur",
+		"width":	"largeur",
+		"mass":		"masse",
+		"power":	"énergie",
+		"shield":	"bouclier",
+		"catalog": {
+			"author":	"auteur",
+			"price":	"prix",
+			"rate":		"note"
+		},
+		"controller":{
+			"weaponPos":	"weapon pos",
+			"rest":			"rest",
+			"type":			"type",
+			"location":		"position",
+			"groups":		"groupes",
+			"unit":			"unité",
+			"dimension":	"dimension",
+			"salvageSpeed":	"vit. de collect",
+			"drainSpeed":	"vit. de drainnage",
+			"supplySpeed":	"vit. d'alimentation",
+			"repairSpeed":	"vit. de réparation",
+			"jamPower":		"énergie",
+			"cloakPower":	"énergie",
+			"name":{
+				"salvage":				"collecteur",
+				"jammer":				"brouilleur",
+				"cloaker":				"camouflage",
+				"repair beam":			"faisceau de réparation",
+				"power drain beam":		"faisceau de drain d'énergie",
+				"power supply beam":	"faisceau d'alimentation",
+				"pulse":				"impulsion"
+			},
+			"effect":{
+				"damage":	"dommages",
+				"distance":	"distance",
+				"reload":	"recharge",
+				"speed":	"vitesse",
+				"radius":	"rayon",
+				"force":	"force"
+			}
+		}
+	}
+}

@@ -1,0 +1,82 @@
+/*
+	Product: Weapons stylesheet of StarOS BPViewer
+	Description: This stylesheet contain Weapons window css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 0.1-rev00001					Date: 2014-04-25
+	Theme Name: Neon
+	By Blackcancer
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+#Weapons {
+}
+
+#Weapons_SelComp {
+}
+
+#Weapons_SelComp, #Weapons_SelComp .GUI_ListBox{
+	width: 180px;
+	height: 100%;
+	font-size: 9px;
+	font-family: "Neuropolitical Rg";
+	color: #b4ffff;
+	background: rgba(0,0,0,0);
+	border: none;
+	float: left;
+}
+
+#Weapons_SelComp .GUI_ListBox:active{
+	border: none;
+	outline: 0px;
+}
+
+#Weapons_SelComp .GUI_ListBox:focus{
+	border: none;
+	outline: 0px;
+}
+
+#Weapons_CompInfo {
+	width: 198px;
+	height: 100%;
+	margin-left: 180px;
+}
+
+#Weapons_CompInfo div {
+	height: 100%;
+	overflow: auto;
+}
+
+#Weapons_CompInfo label {
+	margin: 0;
+	margin-left: 5px;
+	text-shadow: 0 0 0px #000;
+	font-size: 10px;
+	color: #e8a400;
+}
+
+#Weapons_CompInfo .separator {
+	width: 97%;
+	height: 1px;
+	margin: 5px 5px;
+	background: #ccffff
+}
+
+.slider {
+	float: left;
+	width: 92%;
+}
+
+#Weapons_CompInfo .controller {
+	overflow: visible;
+}
+
+#Weapons_CompInfo .withSlider {
+	margin-bottom: 10px
+}
+
+#Weapons_CompInfo .dd_Large {
+	margin-left: 90px
+}

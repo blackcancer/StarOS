@@ -1,0 +1,91 @@
+/*
+	Product: Property stylesheet of StarOS BPViewer
+	Description: This stylesheet contain Property window css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 0.1-rev00001					Date: 2014-04-25
+	Theme Name: Eve
+	By Blackcancer
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+#BPViewer_property .Window_brd_leftTop, #BPViewer_property .Window_brd_top, #BPViewer_property .Window_brd_rightTop,
+#BPViewer_property .Window_brd_leftBottom, #BPViewer_property .Window_brd_bottom, #BPViewer_property .Window_brd_rightBottom {
+	height: 1px;
+}
+
+#BPViewer_property .Window_brd_leftTop, #BPViewer_property .Window_brd_left, #BPViewer_property .Window_brd_rightTop,
+#BPViewer_property .Window_brd_leftBottom, #BPViewer_property .Window_brd_right, #BPViewer_property .Window_brd_rightBottom {
+	width: 1px;
+}
+
+.PropertyDl_left {
+	margin: 0px 2px;
+	line-height: 22px;
+}
+
+.PropertyDt_left {
+	margin-left: 2px;
+}
+
+.PropertyDd_left {
+	margin-left: 90px;
+}
+
+.PropertyDd_left select{
+	width: 150px;
+}
+
+.PropertyDl_right {
+	margin: 0px 2px;
+	margin-left: 5px;
+	line-height: 22px;
+}
+
+.PropertyDt_right {
+}
+
+.PropertyDd_right {
+	margin-left: 40px;
+}
+
+.PropertyDd_right select{
+	width: 50px;
+}
+
+#Property_normalLab{
+	line-height: 20px;
+	color: #189fcc;
+	text-shadow: 0 0 0px #000;
+	font-size: 12px;
+	font-weight: bold;
+	top: 100px;
+	left: 5px;
+}
+
+#Property_normal {
+	top: 100px;
+	left: 85px;
+}
+
+#Property_antialiasLab{
+	line-height: 20px;
+	color: #189fcc;
+	text-shadow: 0 0 0px #000;
+	font-size: 12px;
+	font-weight: bold;
+	top: 100px;
+	left: 155px;
+}
+
+#Property_antialias {
+	top: 100px;
+	left: 237px;
+}
+
+#BPViewer_property div span {
+	top: 140px;
+	left: 65px;
+}

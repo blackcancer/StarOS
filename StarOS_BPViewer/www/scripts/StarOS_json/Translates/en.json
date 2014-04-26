@@ -1,0 +1,71 @@
+{
+	"BPViewer": {
+		"linkBox": {
+			"embed":	"embed",
+			"download":	"download"
+		},
+		"propertyWin": {
+			"theme":		"theme",
+			"font":			"font",
+			"fontSize":		"size",
+			"texture":		"texture pack",
+			"texSize":		"size",
+			"skybox":		"skybox",
+			"normal":		"normal map",
+			"antialias":	"anti-aliasing",
+			"buttons": {
+				"ok":		"ok",
+				"cancel":	"cancel",
+				"apply":	"apply"
+			}
+		},
+		"noData": "no data found",
+		"unknown": "unknown",
+		"needApplyReload": "You need to reload the page after\napplying settings."
+	},
+	"StarMade": {
+		"length":	"length",
+		"height":	"height",
+		"width":	"width",
+		"mass":		"mass",
+		"power":	"power",
+		"shield":	"shield",
+		"catalog": {
+			"author":	"author",
+			"price":	"price",
+			"rate":		"rate"
+		},
+		"controller":{
+			"weaponPos":	"weapon pos",
+			"rest":			"rest",
+			"type":			"type",
+			"location":		"location",
+			"groups":		"groups",
+			"unit":			"unit",
+			"dimension":	"dimension",
+			"salvageSpeed":	"salvage speed",
+			"drainSpeed":	"drain speed",
+			"supplySpeed":	"supply speed",
+			"repairSpeed":	"repair speed",
+			"jamPower":		"power",
+			"cloakPower":	"power",
+			"name":{
+				"salvage":				"salvage",
+				"jammer":				"jammer",
+				"cloaker":				"cloaker",
+				"repair beam":			"repair beam",
+				"power drain beam":		"power drain beam",
+				"power supply beam":	"power supply beam",
+				"pulse":				"pulse"
+			},
+			"effect":{
+				"damage":	"damage",
+				"distance":	"distance",
+				"reload":	"reload",
+				"speed":	"speed",
+				"radius":	"radius",
+				"force":	"force"
+			}
+		}
+	}
+}

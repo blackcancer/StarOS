@@ -1,0 +1,111 @@
+/*
+	Product: Property stylesheet of StarOS BPViewer
+	Description: This stylesheet contain Property window css.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	FileVersion: 0.1-rev00001					Date: 2014-04-25
+	Theme Name: Neon
+	By Blackcancer
+
+	website: http://initsysrev.net
+	support: blackcancer@initsysrev.net
+*/
+
+.PropertyDl_left {
+	margin: 0px 2px;
+	line-height: 22px;
+}
+
+.PropertyDt_left {
+}
+
+.PropertyDd_left {
+	margin-left: 90px;
+}
+
+.PropertyDd_left select{
+	width: 150px;
+}
+
+.PropertyDl_right {
+	margin: 0px 2px;
+	margin-left: 5px;
+	line-height: 22px;
+}
+
+.PropertyDt_right {
+}
+
+.PropertyDd_right {
+	margin-left: 40px;
+}
+
+.PropertyDd_right select{
+	width: 50px;
+}
+
+#Property_normalLab{
+	line-height: 20px;
+	color: #189fcc;
+	text-shadow: 0 0 0px #000;
+	font-size: 10px;
+	top: 100px;
+	left: 0px;
+}
+
+#Property_normal {
+	top: 100px;
+	left: 80px;
+}
+
+#Property_antialiasLab{
+	line-height: 20px;
+	color: #189fcc;
+	text-shadow: 0 0 0px #000;
+	font-size: 10px;
+	top: 100px;
+	left: 150px;
+}
+
+#Property_antialias {
+	top: 100px;
+	left: 232px;
+}
+
+#BPViewer_property div span {
+	top: 130px;
+	left: 65px;
+}
+
+	#BPViewer_property .Property_buttonApply, #BPViewer_property .Property_buttonCancel {
+		background: url(../skin/gui_sprites.png);
+		background-position: -60px -88px;
+		width: 78px;
+		height: 18px;
+		bottom: 0px;
+	}
+
+	#BPViewer_property .Property_buttonApply:hover, #BPViewer_property .Property_buttonCancel:hover {
+		background-position: -60px -106px;
+	}
+
+	#BPViewer_property .Property_buttonOk {
+		background: url(../skin/gui_sprites.png);
+		background-position: -138px -88px;
+		width: 40px;
+		height: 18px;
+		right: 176px;
+		bottom: 0px;
+	}
+
+	#BPViewer_property .Property_buttonOk:hover {
+		background-position: -138px -106px;
+	}
+
+	#BPViewer_property .Property_buttonCancel {
+		right: 88px;
+	}
+
+	#BPViewer_property .Property_buttonApply {
+		right: 0px;
+	}

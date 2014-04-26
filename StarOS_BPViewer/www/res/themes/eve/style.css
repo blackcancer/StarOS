@@ -1,0 +1,27 @@
+/*
+	Product: Main stylesheet of StarOS project.
+	Description: This stylesheet contain all link for other css and fonts.
+	License: http://creativecommons.org/licenses/by/3.0/legalcode
+
+	Version: 0.1								Date: 2014-04-25
+	Theme Name: Eve
+	By Blackcancer
+
+	website: 
+	support: blackcancer@initsysrev.net
+*/
+
+@charset "utf-8";
+@import url(lib/default.css);
+@import url(StarOS/window.css);
+
+/*  BPViewer  */
+@import url(StarOS_BPViewer/BPViewer.css);
+@import url(StarOS_BPViewer/Property.css);
+@import url(StarOS_BPViewer/SelShip.css);
+@import url(StarOS_BPViewer/Button_Box.css);
+@import url(StarOS_BPViewer/Link_box.css);
+@import url(StarOS_BPViewer/Tooltips.css);
+@import url(StarOS_BPViewer/Weapons.css);
+@import url(StarOS_BPViewer/Info_box.css);
+@import url(StarOS_BPViewer/Debug.css);
