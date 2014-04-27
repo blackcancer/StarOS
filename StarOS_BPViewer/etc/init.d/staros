@@ -1,0 +1,193 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          StarOS
+# Required-Start:    $remote_fs $named $syslog
+# Required-Stop:     $remote_fs $named $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DEBIAN initscript for StarOS server
+### END INIT INFO
+
+
+DAEMON_ARGS="/opt/StarOS/server.js"
+DESC="StarOS server"
+RUN=/var/run
+NAME=node
+DAEMON=/usr/bin/$NAME
+
+
+# Do NOT "set -e"
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] ||  { echo "can't find Node.js ($DAEMON)"  >&2; exit 0; }
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# uncomment to override system setting
+#VERBOSE=yes
+
+THIS_ARG=$0
+INIT_SCRIPT_NAME=`basename $THIS_ARG`
+[ -h $THIS_ARG ] && INIT_SCRIPT_NAME=`basename $(readlink $THIS_ARG)` # in case of symlink
+INIT_SCRIPT_NAME_NOEXT=${INIT_SCRIPT_NAME%.*}                            
+PIDFILE="$RUN/$INIT_SCRIPT_NAME_NOEXT.pid"
+SCRIPTNAME=/etc/init.d/$INIT_SCRIPT_NAME
+
+#
+# Functions
+#
+do_start(){
+	# Return
+	#   0 if daemon has been started
+	#   1 if daemon was already running
+	#   2 if daemon could not be started
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --background --name $INIT_SCRIPT_NAME \
+	--exec $DAEMON --test > /dev/null \
+	|| { 
+		log_progress_msg "$DESC apparently already running"
+		return 1
+	}
+
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile --background --name $INIT_SCRIPT_NAME \
+	--exec $DAEMON -- \
+	$DAEMON_ARGS \
+	|| {
+		log_failure_msg "$DESC could not be start"
+		return 2
+	}
+	log_success_msg "$DESC started"
+}
+
+do_stop(){
+	# Return
+	#   0 if daemon has been stopped
+	#   1 if daemon was already stopped
+	#   2 if daemon could not be stopped
+	#   other if a failure occurred
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $INIT_SCRIPT_NAME \
+	--name $DAEMON
+	sleep 1
+	RETVAL="$?"
+	[ "$RETVAL" = 2 ] && return 2
+
+	[ "$VERBOSE" != no ] && [ "$RETVAL" = 1 ] && log_failure_msg "SIGKILL failed => hardkill $DESC"
+	start-stop-daemon --stop --quiet --oknodo --retry=0/3/KILL/5 --pidfile $PIDFILE --name $INIT_SCRIPT_NAME \
+	--exec $DAEMON -- \
+	$DAEMON_ARGS
+	[ "$?" = 2 ] && return 2
+
+	rm -f $PIDFILE
+	[ "$RETVAL" = 1 ] && log_warning_msg "$DESC not running"
+	[ "$RETVAL" = 0 ] && log_success_msg "$DESC stopped"
+}
+
+do_reload(){
+	#
+	# If the daemon can reload its configuration without
+	# restarting (for example, when it is sent a SIGHUP),
+	# then implement that here.
+	#
+	start-stop-daemon --stop --quiet --signal 1 --pidfile $PIDFILE  --name $INIT_SCRIPT_NAME
+	return 0
+}
+
+do_status(){
+	RUNNING=$(running)
+
+	ispidactive=$(pidof $NAME | grep `cat $PIDFILE 2>&1` >/dev/null 2>&1)
+	ISPIDACTIVE=$?
+
+	if [ -n "$RUNNING" ]; then
+		if [ $ISPIDACTIVE ]; then 
+			if [ "$VERBOSE" != no ]; then
+				log_success_msg "$DESC (launched by $USER) (--chuid $NODEUSER) is running"
+				exit 0  
+			else
+				log_success_msg "$DESC is running"
+				exit 0  
+			fi    
+		fi
+	else
+		if [ -f $PIDFILE ]; then
+			if [ "$VERBOSE" != no ]; then
+				log_warning_msg "$DESC (launched by $USER as --chuid $NODEUSER) not running, zombie pidfile $PIDFILE"
+				exit 1
+			else
+				log_warning_msg "$DESC not running, zombie pidfile $PIDFILE"
+				exit 1
+			fi
+		else
+			if [ "$VERBOSE" != no ]; then
+				log_success_msg "no instance launched by $USER, of $DESC (--chuid $NODEUSER) found"
+				exit 3
+			else
+				log_success_msg "$DESC not running"
+				exit 3
+			fi
+		fi
+	fi
+}
+
+running(){
+	RUNSTAT=$(start-stop-daemon --start --quiet --pidfile $PIDFILE --background --exec $DAEMON --test > /dev/null)
+	if [ "$?" = 1 ]; then
+		echo y
+	fi
+}
+
+
+case "$1" in
+	start)
+		log_begin_msg "Starting $DESC..."
+		do_start
+		case "$?" in
+			0|1) log_end_msg 0 ;;
+			2) log_end_msg 1 ;;
+		esac
+	;;
+
+	stop)
+		log_begin_msg "Stopping $DESC..."
+		do_stop
+		case "$?" in
+			0|1) log_end_msg 0 ;;
+			2) log_end_msg 1 ;;
+		esac
+	;;
+
+	restart|force-reload)
+		log_begin_msg "Restarting $DESC..."
+		do_stop
+		case "$?" in
+		  0|1)
+			do_start
+			case "$?" in
+				0) log_end_msg 0 ;;
+				1) log_end_msg 1 ;; # Old process is still running
+				*) log_end_msg 1 ;; # Failed to start
+			esac
+		;;
+		*)
+			# Failed to stop
+			log_end_msg 1
+		;;
+		esac
+	;;
+
+	status)
+		do_status
+	;;
+
+	*)
+		log_action_msg "Usage: $SCRIPTNAME {start|stop|restart|force-reload|status}"
+		exit 3
+	;;
+	esac
+
+exit 0
