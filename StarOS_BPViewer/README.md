@@ -30,9 +30,7 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> SETUP <==
--	copy all file in your site.
--	In shell, type: `php -d memory_limit=-1 setup.php DIRECTORY/OF/YOUR/GAME`.
--	Update your map with command `php -d memory_limit=-1 setup.php DIRECTORY/OF/YOUR/GAME`
+-	[wiki](https://github.com/blackcancer/StarOS/wiki/2.2-Install)
 
 
 
