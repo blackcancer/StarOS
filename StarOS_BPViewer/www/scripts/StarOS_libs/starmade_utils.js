@@ -486,7 +486,7 @@
 	* set Server login message
 	**/
 	var setServerMsg = function(message, callback){
-		_socket.callAPI('setServerMsg', 'vfs', 'fwrite', {path: StarOS.config.path.starmade + 'server-message.cfg', data: message});
+		_socket.callAPI('setServerMsg', 'vfs', 'fwrite', {path: StarOS.config.path.starmade + 'server-message.txt', data: message});
 
 		_socket.on('API::setServerMsg', function(err){
 			callback(err);
