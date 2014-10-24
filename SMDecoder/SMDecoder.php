@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00013						Date: 2014-01-03
+		FileVersion: 0.6-rev00030						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -37,10 +37,15 @@
 	define("TAG_STR_STRUCT",	chr(13));
 	define("TAG_STR_SERIAL",	chr(14));
 
-	define("TAG_UNK",			chr(241));		//added to dev 0.107 bit length: 136
-	define("TAG_ARRAYDATA",		chr(243));
+	define("TAG_RGBA",			chr(241));
+	define("TAG_UNK",			chr(242));		//added to dev 0.107 bit length: 136
+	define("TAG_STRUCT",		chr(243));
+	define("TAG_LIST",			chr(244));
+	define("TAG_BYTE3",			chr(245));
 	define("TAG_INT3",			chr(246));
+	define("TAG_FLOAT3",		chr(247));
 	define("TAG_STRING",		chr(248));
+	define("TAG_BYTEARRAY",		chr(249));
 	define("TAG_DOUBLE",		chr(250));
 	define("TAG_FLOAT",			chr(251));
 	define("TAG_LONG",			chr(252));
@@ -54,10 +59,12 @@
 		private $stream;
 		private $type;
 
-		public function decodeSMFile($file, $formated = false){
+		public function decodeSMFile($file, $formated = false, $fileSize = null, $ext = null){
 			$ent = array();
 			$this->stream = fopen($file, "rb");
-			$ext = pathinfo($file, PATHINFO_EXTENSION);
+			if(!$ext){
+				$ext = pathinfo($file, PATHINFO_EXTENSION);
+			}
 
 			switch($ext){
 				case "cat":
@@ -65,84 +72,107 @@
 					if($formated){
 						$ent = $this->formatCat($ent);
 					}
-					break;
+				break;
 
 				case "ent":
 					$ent = $this->mainDecoder();
 					if($formated){
 						$this->type = $this->getEntType($file);
 						switch($this->type){
+							case 0:
+								$ent = $this->formatPlanCore($ent);
+							break;
+
 							case 1:
 								$ent = $this->formatShop($ent);
-								break;
+							break;
 
 							case 2:
 								$ent = $this->formatStation($ent);
-								break;
+							break;
 
 							case 3:
 								$ent = $this->formatAst($ent);
-								break;
+							break;
 
 							case 4:
 								$ent = $this->formatPlan($ent);
-								break;
+							break;
 
 							case 5:
 								$ent = $this->formatShip($ent);
-								break;
+							break;
 
 							case 6:
 								preg_match('/(?:PLAYERCHARACTER_)(.+)(?:.ent)/', $file, $matches);
 								$pseudo = $matches[1];
 								$ent = $this->formatChar($ent, $pseudo);
-								break;
+							break;
 
 							case 7:
 								preg_match('/(?:PLAYERSTATE_)(.+)(?:.ent)/', $file, $matches);
 								$pseudo = $matches[1];
 								$ent = $this->formatStats($ent, $pseudo);
-								break;
+							break;
 						}
 					}
-					break;
+				break;
 
 				case "fac":
 					$ent = $this->mainDecoder();
 					if($formated){
 						$ent = $this->formatFac($ent);
 					}
-					break;
+				break;
 
 				case "smbph":
 					$ent = $this->decodeHeader();
-					break;
+				break;
 
 				case "smbpl":
-					$fileSize = filesize($file);
+					if(!$fileSize){
+						$fileSize = filesize($file);
+					}
 					$ent = $this->decodeLogic($fileSize);
+
 					if($formated){
 						$ent = $this->formatLogic($ent);
 					}
-					break;
+				break;
 
 				case "smbpm":
-					$fileSize = filesize($file);
+					if(!$fileSize){
+						$fileSize = filesize($file);
+					}
 					$ent = $this->decodeMeta($fileSize);
 					if($formated){
 						$ent = $this->formatMeta($ent);
 					}
-					break;
+				break;
 
 				case "smd2":
-					$fileSize = filesize($file);
+					if(!$fileSize){
+						$fileSize = filesize($file);
+					}
 					$ent = $this->decodeModel($fileSize);
-					break;
+				break;
+
+				case "sment":
+					$ent = $this->uncompressEnt($file, $formated);
+				break;
+
+				case "smskin":
+					$ent = $this->uncompressSkin($file);
+				break;
 
 				default:
 					die("Unknown file format");
 			}
-			fclose($this->stream);
+
+			if(is_resource($this->stream)){
+				fclose($this->stream);
+			}
+
 			return $this->convertArrayToUtf8($ent);
 		}
 
@@ -152,6 +182,7 @@
 			$data = array();
 			$data['short_a'] = $this->readInt16();
 			$tag = $this->readByte();
+			print_r($tag);
 
 			while($tag != ''){
 
@@ -174,19 +205,28 @@
 		//============================= Entity Decoder  =============================//
 		private function getEntType($file){
 
-			if(strpos($file, 'SHOP') !== false){
+			if(strpos($file, 'PLANETCORE') !== false){
+				return 0;
+			}
+			else if(strpos($file, 'SHOP') !== false){
 				return 1;
-			}else if(strpos($file, 'SPACESTATION') !== false){
+			}
+			else if(strpos($file, 'SPACESTATION') !== false){
 				return 2;
-			}else if(strpos($file, 'FLOATINGROCK') !== false){
+			}
+			else if(strpos($file, 'FLOATINGROCK') !== false){
 				return 3;
-			}else if(strpos($file, 'PLANET') !== false){
+			}
+			else if(strpos($file, 'PLANET') !== false){
 				return 4;
-			}else if(strpos($file, 'SHIP') !== false){
+			}
+			else if(strpos($file, 'SHIP') !== false){
 				return 5;
-			}else if(strpos($file, 'PLAYERCHARACTER') !== false){
+			}
+			else if(strpos($file, 'PLAYERCHARACTER') !== false){
 				return 6;
-			}else if(strpos($file, 'PLAYERSTATE') !== false){
+			}
+			else if(strpos($file, 'PLAYERSTATE') !== false){
 				return 7;
 			}
 
@@ -199,9 +239,9 @@
 			/*
 				start	type
 					0	int				unknown int
-					4	int				unknown int
-					8	float[3]		3d float vector (bounding box of ship)
-					20	float[3]		3d float fector (bounding box of ship)
+					4	int				entity type
+					8	float[3]		3d float vector (negative bounding box of ship)
+					20	float[3]		3d float fector (positive bounding box of ship)
 					32	int				number of block table entries (N)
 					36	blockEntry[N]	block entry
 
@@ -211,19 +251,18 @@
 			*/
 			$return = array();
 
-			$return['int_a'] = $this->readInt32();
-			$return['int_b'] = $this->readInt32();
-			$return['bounds_a'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
-			$return['bounds_b'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
-			$blockTblLen = $this->readInt32();
-			$return['blockTableLen'] = $blockTblLen;
-			$return['blocks'] = array();
+			$return['int_a']	= $this->readInt32();
+			$return['type']		= $this->readInt32();
+			$return['bounds_n']	= array($this->readFloat(), $this->readFloat(), $this->readFloat());
+			$return['bounds_p']	= array($this->readFloat(), $this->readFloat(), $this->readFloat());
 
-			for($i = 0; $i < $blockTblLen; $i++){
-				$index = $this->readInt16();
-				$qty = $this->readInt32();
-				$return['blocks'][$index] = $qty;
+			$return['blockTableLen'] = $this->readInt32();
+
+			$return['blocks'] = array();
+			for($i = 0; $i < $return['blockTableLen']; $i++){
+				$return['blocks'][$this->readInt16()] = $this->readInt32();
 			}
+
 			return $return;
 		}
 
@@ -248,10 +287,10 @@
 
 			FOR EXAMPLE, a file might have this data:
 
-			numControllers = 2
+			ctrLen = 2
 			controllerEntry[0] (will be the ship core)
 				position: (8,8,8) (since it's the ship core)
-				numGroups: 2
+				numGrp: 2
 				group[0]
 					blockID: 4 (Salvager computer)
 					numBlocks: 1 (# of salvage computer on the ship)
@@ -262,7 +301,7 @@
 					blockArray: (12 entries containing 3 shorts each, the position of each thruster)
 			controllerEntry[1] (the salvager computer)
 				position: (8,8,13)
-				numGroups: 1
+				numGrp: 1
 				group[0]
 					blockID: 24 (Salvage cannon)
 					numBlocks: 10
@@ -272,21 +311,21 @@
 			$return = array();
 
 			while (ftell($this->stream) < $fileSize){
-				$return['int_a'] = $this->readInt32();
-				$numControls = $this->readInt32();
+				$return['int_a']	= $this->readInt32();
+				$ctrLen		= $this->readInt32();
+
 				$return['controllers'] = array();
+				for($i = 0; $i < $ctrLen; $i++){
+					$dict			= array();
+					$dict['pos']	= array($this->readInt16(), $this->readInt16(), $this->readInt16());
+					$numGrp			= $this->readInt32();
 
-				for($i = 0; $i < $numControls; $i++){
-					$dict = array();
-					$dict['pos'] = array($this->readInt16(), $this->readInt16(), $this->readInt16());
-					$numGroups = $this->readInt32();
 					$dict['q'] = array();
+					for($j = 0; $j < $numGrp; $j++){
+						$tag		= $this->readInt16();
+						$numBlocks	= $this->readInt32();
 
-					for($j = 0; $j < $numGroups; $j++){
-						$tag = $this->readInt16();
-						$numBlocks = $this->readInt32();
 						$dict['q'][$tag] = array();
-
 						for($x = 0; $x < $numBlocks; $x++){
 							array_push($dict['q'][$tag], array($this->readInt16(), $this->readInt16(), $this->readInt16()));
 						}
@@ -301,79 +340,77 @@
 		//============================= Meta Decoder    =============================//
 		private function decodeMeta($fileSize){
 			/*
-			start     type
-				0       int				unknown int
-				4       byte			unknown byte. Currently expecting a 0x03 here.
-				5       int				number of dockEntry (docked ship/turrets)
-				9       dockEntry[N]	data about each docked ship/turret
-				vary    byte			unknown byte
-				vary    short			specifies if GZIP compression is used on the tagStruct
-				vary    tagStruct[]		additional metadata in a tag structure
-				
-				
-			dockEntry is a variable length struct
-			start		type
-				0		int				length of the string giving attached ship's subfolder
-				4		wchar[N]		ship subfolder string given in modified UTF-8 encoding
-				vary	int[3]			q vector, the location of the dock block
-				vary	float[3]		a vector, ???
-				vary	short			block ID of the dock block
-				
-			tagStruct encodes variety of data types in a tree structure
-			start       type
-				0       byte            tag type
-				1       int             length of the tag name string
-				5       wchar[N]        tag name string in modified UTF-8 encoding
-				vary    vary            tag data
-				
-			special tag types (see code for full list and encoding):
-				0x0     End of tag struct marker -- no tag name or data follows this
-				0xD     Start of new tag struct
-				0xE     Serialized object (not yet implemented here)
+				start		type
+					0		int				unknown int
+					4		byte			unknown byte. Currently expecting a 0x03 here.
+					5		int				number of dockEntry (docked ship/turrets)
+					9		dockEntry[N]	data about each docked ship/turret
+					vary	byte			unknown byte
+					vary	short			specifies if GZIP compression is used on the tagStruct
+					vary	tagStruct[]		additional metadata in a tag structure
+
+				dockEntry is a variable length struct
+				start		type
+					0		int				length of the string giving attached ship's subfolder
+					4		wchar[N]		ship subfolder string given in modified UTF-8 encoding
+					vary	int[3]			q vector, the location of the dock block
+					vary	float[3]		a vector, ???
+					vary	short			block ID of the dock block
+
+				tagStruct encodes variety of data types in a tree structure
+				start		type
+					0		byte			tag type
+					1		int				length of the tag name string
+					5		wchar[N]		tag name string in modified UTF-8 encoding
+					vary	vary			tag data
+
+				special tag types (see code for full list and encoding):
+					0x0		End of tag struct marker -- no tag name or data follows this
+					0xD		Start of new tag struct
+					0xE		Serialized object (not yet implemented here)
 			*/
 
 			$return = array();
 
-			$return['int_a'] = $this->readInt32();
-			$return['byte_a'] = $this->readInt8();
+			$return['int_a']	= $this->readInt32();
+			$return['byte_a']	= $this->readInt8();
 
 			if($return['byte_a'] == 3){
+				$numDocked			= $this->readInt32();
 
-				$numDocked = $this->readInt32();
 				$return['docked'] = array();
-
 				for($i = 0; $i < $numDocked; $i++){
-					$name = $this->readString();
-					$q = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					$a = array($this->readFloat(), $this->readFloat(), $this->readFloat());
-					$docking = $this->readInt16();
-					$this->readByte();
-
-					$arr = array(
+					$name		= $this->readString();
+					$q			= array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					$a			= array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					$docking	= $this->readInt16();
+					$arr		= array(
 						'name' => $name,
 						'q' => $q,
 						'a' => $a,
 						'dockID' => $docking
 					);
+
 					array_push($return['docked'], $arr);
+					$this->readByte();
 				}
 
 				$return['byte_b'] = $this->readByte();
 				$return['gzip'] = $this->readInt16();
 
-				$type = $this->readByte();
-				while($type != ''){
+				$tag = $this->readByte();
+				while($tag != ''){
 
-					$resp = $this->parseTag($type);
+					$data = $this->parseTag($tag);
 
-					if(isset($resp['name'])){
-						$return[$resp['name']] = $resp['data'];
+					if(isset($data['name'])){
+						$return[$data['name']] = $data['data'];
 					}
 					else{
-						array_push($return, $resp);
+						array_push($return, $data);
 					}
 
-					$type = $this->readByte();
+					$tag = $this->readByte();
 				}
 			}
 
@@ -386,118 +423,118 @@
 
 			/*
 				Read a starmade data file (.smd2)
-				
+
 				This function will probably be really inefficient for large ships!
-				
-				 start     type
-					0         int                       unknown int
-					4         chunkIndex[16][16][16]      chunkIndex struct (see below) arranged in a 16x16x16 array
-					32772     long[16][16][16]          chunk timestamp information arranged in a 16x16x16 array
-					65540     chunkData[]               5120 byte chunks
-			
+
+				 start		type
+					0		int						unknown int
+					4		chunkIndex[16][16][16]	chunkIndex struct (see below) arranged in a 16x16x16 array
+					32772	long[16][16][16]		chunk timestamp information arranged in a 16x16x16 array
+					65540	chunkData[]				5120 byte chunks
+
 					Note that there may exist chunk timestamps and chunks that are not referenced in the chunkIndex table and seemingly serve no purpose.
-					
+
 					chunkIndex is an 8 byte struct
-						int     chunkId     Index into the chunkData[] array.  If no chunk exists for this point in the array, chunkId = -1
-						int     chunklen    The total chunk size in bytes (excluding the zero padding).  Equal to the chunk's "inlen" field plus 25 (the chunk header size)
-					
+						int		chunkId		Index into the chunkData[] array.  If no chunk exists for this point in the array, chunkId = -1
+						int		chunklen	The total chunk size in bytes (excluding the zero padding).  Equal to the chunk's "inlen" field plus 25 (the chunk header size)
+
 					chunkData is a 5120 byte structure
-						long    timestamp   Unix timestamp in milliseconds
-						int[3]  q           Relative chunk position
-						int     type        Chunk type (?) usually 0x1
-						int     inlen       Compressed data length
-						byte    data[inlen] ZLIB-compressed data of rawChunkData[16][16][16]
-						byte    padding[]   Zero padded to 5120 byte boundary
-					
+						long	timestamp	Unix timestamp in milliseconds
+						int[3]	q			Relative chunk position
+						int		type		Chunk type (?) usually 0x1
+						int		inlen		Compressed data length
+						byte	data[inlen]	ZLIB-compressed data of rawChunkData[16][16][16]
+						byte	padding[]	Zero padded to 5120 byte boundary
+
 					rawChunkData is a 3 byte bitfield
 						Bits
-						23-21   3 lower bits of orientation
-						20      isActive or MSB of the orientation
-						19-11   hitpoints
-						10-0    blockID
+						23-21	3 lower bits of orientation
+						20		isActive or MSB of the orientation
+						19-11	hitpoints
+						10-0	blockID
 			*/
 
 			$data = array();
 
-			$data['filelen'] = $fileSize;
+			$data['filelen']			= $fileSize;
+			$data['int_a']				= $this->readInt32();
 			$numChunks = ($fileSize - 4 - 32768 - 32768) / 5120;
 
-			$data['int_a'] = $this->readInt32();
-			$data['chunkIndex'] = array();
-			$data['chunkTimestamps'] = array();
-			$data['chunks'] = array();
 
 			//First 32KB area
+			$data['chunkIndex'] = array();
 			for($i = 0; $i < 4096; $i++){
-				$chunkId = $this->readInt32();
-				$chunkLen = $this->readInt32();
+				$chunkId	= $this->readInt32();
+				$chunkLen	= $this->readInt32();
 
 				if($chunkId != -1){
-					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
-					$pos = array(($pos[0] - 8), ($pos[1] - 8), ($pos[2] - 8));
-					$posStr = $pos[0].','.$pos[1].','.$pos[2];
-					
+					$pos	= array(($i % 16) - 8, (($i / 16) % 16) - 8, (($i / 256) % 16) - 8);
+					$posStr	= $pos[0] . ',' . $pos[1] . ',' . $pos[2];
+
 					$data['chunkIndex'][$posStr] = array(
-						'id' => $chunkId,
-						'len' => $chunkLen
+						'id'	=> $chunkId,
+						'len'	=> $chunkLen
 					);
 				}
 			}
 
 			//Second 32KB area
+			$data['chunkTimestamps'] = array();
 			for($i = 0; $i < 4096; $i++){
 				$timestamp = $this->readInt64();
 
 				if($timestamp > 0){
-					$pos = array($i % 16, ($i / 16) % 16, ($i / 256) % 16);
-					$pos = array(($pos[0] - 8), ($pos[1] - 8), ($pos[2] - 8));
-					$posStr = $pos[0].','.$pos[1].','.$pos[2];
+					$pos	= array(($i % 16) - 8, (($i / 16) % 16) - 8, (($i / 256) % 16) - 8);
+					$posStr	= $pos[0] . ',' . $pos[1] . ',' . $pos[2];
 
 					$data['chunkTimestamps'][$posStr] = $timestamp;
 				}
 			}
 
-			for($chunk = 0; $chunk < $numChunks; $chunk++){
-				$chunkDict = array();
-				$chunkDict['blocks'] = array();
+			//Last KB area
+			$data['chunks'] = array();
+			for($i = 0; $i < $numChunks; $i++){
+				$chunkDict	= array();
+				$compressed	= 5120 - 25;
+				$inLen		= null;
+				$inData		= null;
+				$outData	= null;
 
 				//retro-compatibility support
 				if($data['int_a'] >= 1){
-					$chunkDict['byte_a'] = $this->readByte();
+					$chunkDict['byte_a']	= $this->readByte();
+					$compressed				= 5120 - 26;
 				}
 
-				$chunkDict['timestamp'] = $this->readInt64();
-				$chunkDict['pos'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-				$chunkDict['type'] = $this->readByte();
-				$inLen = $this->readInt32();
+				$chunkDict['timestamp']	= $this->readInt64();
+				$chunkDict['pos']		= array($this->readInt32(), $this->readInt32(), $this->readInt32());
+				$chunkDict['type']		= $this->readByte();
+				$chunkDict['blocks']	= array();
 
-				//retro-compatibility support
-				$dl = 5120 - 25;
-				if($data['int_a'] >= 1){
-					$dl = 5120 - 26;
-				}
+				$inLen		= $this->readInt32();
+				$inData		= $this->readBytes($compressed);
+				$outData	= gzuncompress($inData);
 
-				$inData = $this->readBytes($dl);
-				$outData = gzuncompress($inData);
+				for($j = 0; $j < 4096; $j++){
+					$id		= $j * 3;
+					$str	= chr(0);
 
-				for($block = 0; $block < 16*16*16; $block++){
-					$idx = $block * 3;
-					$str = chr(0);
-					for($i = 0; $i < 3; $i++){
-						$str .= $outData[$idx + $i];
+					for($k = 0; $k < 3; $k++){
+						$str .= $outData[$id + $k];
 					}
-					$blockData = $this->binToInt32($str);
-					$blockId = $this->bits($blockData, 0, 11);
+
+					$blockData	= $this->binToInt32($str);
+					$blockId	= $this->bits($blockData, 0, 11);
 
 					if($blockId != 0){
-						$pos = array($block % 16, ($block / 16) % 16, ($block / 256) % 16);
-						$posStr = $pos[0].','.$pos[1].','.$pos[2];
+						$pos	= array($j % 16, ($j / 16) % 16, ($j / 256) % 16);
+						$posStr	= $pos[0].','.$pos[1].','.$pos[2];
 
 						$chunkDict['blocks'][$posStr] = array(
-							'id' => $blockId,
-							'hp' => $this->bits($blockData, 11, 9),
-							'isActive' => $this->bits($blockData, 20, 1),
-							'orient' => $this->bits($blockData, 21, 3)
+							'id'		=> $blockId,
+							'hp'		=> $this->bits($blockData, 11, 9),
+							'isActive'	=> $this->bits($blockData, 20, 1),
+							'orient'	=> $this->bits($blockData, 21, 3)
 						);
 					}
 
@@ -507,6 +544,89 @@
 			}
 
 			return $data;
+		}
+
+
+		private function uncompressSkin($file){
+			// open compressed
+			$content = array();
+			$zip = zip_open($file);
+
+			// look for error
+			if(!is_resource($zip)){
+				die($this->zipFileErrMsg($zip));
+			}
+
+			//read compressed content
+			while($zip_entry = zip_read($zip)){
+				$path = zip_entry_name($zip_entry);
+
+				if(zip_entry_open($zip, $zip_entry, 'r')){
+
+					$content[$path] = array(
+						'size' => zip_entry_filesize($zip_entry),
+						'data' => "data:image/png;filename=" . $path . ";base64," . base64_encode(zip_entry_read($zip_entry, zip_entry_filesize($zip_entry)))
+					);
+
+					zip_entry_close($zip_entry);
+				}
+			}
+
+			// close compressed
+			zip_close($zip);
+			return $content;
+		}
+
+
+		private function uncompressEnt($file, $formated){
+			// open compressed
+			$content = array();
+			$zip = zip_open($file);
+
+			// look for error
+			if(!is_resource($zip)){
+				die($this->zipFileErrMsg($zip));
+			}
+
+			//read compressed content
+			while($zip_entry = zip_read($zip)){
+				$path		= zip_entry_name($zip_entry);
+				$splited	= explode('/', $path);
+
+
+				if(zip_entry_open($zip, $zip_entry, 'r')){
+
+					if(count($splited) > 2 && strpos($splited[1], 'DATA') !== false){
+						if(!array_key_exists('DATA', $content)){
+							$content[$splited[1]] = array();
+						}
+
+						$ext = explode('.', $splited[2]);
+						$ext = $ext[count($ext) - 1];
+						$data = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+						$size = zip_entry_filesize($zip_entry);
+
+						$content[$splited[1]][$splited[2]] = $this->decodeSMFile("data://text/plain;base64," . base64_encode($data), $formated, $size, $ext);
+
+						zip_entry_close($zip_entry);
+					}
+					else if(count($splited) === 2){
+						$ext = explode('.', $splited[1]);
+						$ext = $ext[count($ext) - 1];
+						$data = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+						$size = zip_entry_filesize($zip_entry);
+
+						$content[$splited[1]] = $this->decodeSMFile("data://text/plain;base64," . base64_encode($data), $formated, $size, $ext);
+
+						zip_entry_close($zip_entry);
+					}
+				}
+			}
+
+			// close compressed
+			zip_close($zip);
+			var_dump($content);
+			return $content;
 		}
 
 
@@ -576,50 +696,70 @@
 		//================================ Tag Parser ===============================//
 		private function parseTag($type){
 			$data = null;
-			$listName = array(
-				"AIElement",
-				"wepContr",
-				"PointDist",
-				"D",
-				"inventory",
-				"mem",
-				"f0",
-				"0FN",
-				"FN",
-				"fp-v0",
-				"0"
-			);
 
 			switch($type){
 				case TAG_STR_BYTE:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readInt8();
-					break;
+				break;
+
+				case TAG_BYTE:
+					$data = $this->readInt8();
+				break;
 
 				case TAG_STR_SHORT:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readInt16();
-					break;
+				break;
+
+				case TAG_SHORT:
+					$data = $this->readInt16();
+				break;
 
 				case TAG_STR_INT:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readInt32();
-					break;
+				break;
+
+				case TAG_INT:
+					$data = $this->readInt32();
+				break;
 
 				case TAG_STR_LONG:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readInt64();
-					break;
+				break;
+
+				case TAG_LONG:
+					$data = $this->readInt64();
+				break;
 
 				case TAG_STR_FLOAT:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readFloat();
-					break;
+				break;
+
+				case TAG_FLOAT:
+					$data = $this->readFloat();
+				break;
 
 				case TAG_STR_DOUBLE:
 					$data['name'] = $this->readString();
 					$data['data'] = $this->readDouble();
-					break;
+				break;
+
+				case TAG_DOUBLE:
+					$data = $this->readDouble();
+				break;
+
+				case TAG_STR_STRING:
+					$data['name'] = $this->readString();
+					$data['data'] = $this->readString();
+				break;
+
+				case TAG_STRING:
+					$data = $this->readString();
+				break;
 
 				case TAG_STR_BYTEARRAY:
 					$data['name'] = $this->readString();
@@ -629,28 +769,43 @@
 					for($i = 0; $i < $len; $i++){
 						array_push($data['data'], $this->readInt8());
 					}
+				break;
 
-					break;
+				case TAG_BYTEARRAY:
+					$data = array();
+					$len = $this->readInt32();
 
-				case TAG_STR_STRING:
-					$data['name'] = $this->readString();
-					$data['data'] = $this->readString();
-					break;
+					for($i = 0; $i < $len; $i++){
+						array_push($data['data'], $this->readInt8());
+					}
+				break;
 
 				case TAG_STR_FLOAT3:
 					$data['name'] = $this->readString();
 					$data['data'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
-					break;
+				break;
+
+				case TAG_FLOAT3:
+					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+				break;
 
 				case TAG_STR_INT3:
 					$data['name'] = $this->readString();
 					$data['data'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					break;
+				break;
+
+				case TAG_INT3:
+					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+				break;
 
 				case TAG_STR_BYTE3:
 					$data['name'] = $this->readString();
 					$data['data'] = array($this->readInt8(), $this->readInt8(), $this->readInt8());
-					break;
+				break;
+
+				case TAG_BYTE3:
+					$data['data'] = array($this->readInt8(), $this->readInt8(), $this->readInt8());
+				break;
 
 				case TAG_STR_LIST:
 					$data['name'] = $this->readString();
@@ -661,8 +816,17 @@
 					for($i = 0; $i < $len; $i++){
 						array_push($data['data'], $this->parseList($next));
 					}
+				break;
 
-					break;
+				case TAG_LIST:
+					$data = array();
+					$next = $this->readByte();
+					$len = $this->readInt32();
+
+					for($i = 0; $i < $len; $i++){
+						array_push($data, $this->parseList($next));
+					}
+				break;
 
 				case TAG_STR_STRUCT:
 					$data['name'] = $this->readString();
@@ -674,18 +838,38 @@
 						$resp = $this->parseTag($next);
 
 						if(is_array($resp) && isset($resp['name'])){
+							$key = $resp['name'];
 
-							if(in_array($resp['name'], $listName)){
-								while(array_key_exists($resp['name'] . $i, $data['data'])){
-									$i++;
-								}
-								$offset = $resp['name'] . $i;
-								$data['data'][$offset] = $resp['data'];
-								$i = 0;
+							if(!array_key_exists($key, $data['data'])){
+								$data['data'][$key] = $resp['data'];
+								//array_push($data['data'][$key], $resp['data']);
 							}
 							else{
-								$data['data'][$resp['name']] = $resp['data'];
-								$i = 0;
+								if(!is_array($data['data'][$key])){
+									if(!is_numeric($key)){
+										$tmp = $data['data'][$key];
+										$data['data'][$key] = array();
+										array_push($data['data'][$key], $tmp);
+										array_push($data['data'][$key], $resp['data']);
+									}
+									else {
+										//need to be improved
+										$data['data']['used_' . $key] = array();
+										array_push($data['data']['used_' . $key], $resp['data']);
+									}
+								}
+								else if(is_array($resp['data']) && count(array_diff_key($resp['data'], $data['data'][$key])) < 1){
+									$tmp = $data['data'][$key];
+									$data['data'][$key] = array();
+
+									/*for($i = 0; $i < count($tmp); $i++){
+									}*/
+									array_push($data['data'][$key], $tmp);
+									array_push($data['data'][$key], $resp['data']);
+								}
+								else {
+									array_push($data['data'][$key], $resp['data']);
+								}
 							}
 
 						}
@@ -695,8 +879,56 @@
 
 						$next = $this->readByte();
 					}
+				break;
 
-					break;
+				case TAG_STRUCT:
+					$data = array();
+					$next = $this->readByte();
+					$i = 0;
+					while($next != TAG_FINISH){
+
+						$resp = $this->parseTag($next);
+
+						if(is_array($resp) && isset($resp['name'])){
+							$key = $resp['name'];
+
+							if(!array_key_exists($key, $data)){
+								$data[$key] = $resp['data'];
+								//array_push($data[$key], $resp['data']);
+							}
+							else{
+								if(!is_array($data[$key])){
+									if(!is_numeric($key)){
+										$tmp = $data[$key];
+										$data[$key] = array();
+										array_push($data[$key], $tmp);
+										array_push($data[$key], $resp['data']);
+									}
+									else {
+										$data['used_' . $key] = array();
+										array_push($data['used_' . $key], $resp['data']);
+									}
+								}
+								else if(is_array($resp['data']) && !array_diff_key($resp['data'], $data[$key])){
+									$tmp = $data[$key];
+									$data[$key] = array();
+
+									array_push($data[$key], $tmp);
+									array_push($data[$key], $resp['data']);
+								}
+								else {
+									array_push($data[$key], $resp['data']);
+								}
+							}
+						}
+						else{
+							array_push($data, $resp);
+						}
+
+						$next = $this->readByte();
+
+					}
+				break;
 
 				case TAG_STR_SERIAL:
 					$data['name'] = $this->readString();
@@ -707,83 +939,19 @@
 						$data['data'] .= $this->readByte();
 						$nextBytes = $this->readNextBytes(11);
 					}
-
-					break;
+				break;
 
 				case TAG_UNK:
 					$data = $this->readBytes(16);
-					break;
+				break;
 
-				case TAG_ARRAYDATA:
-					$data = array();
-					$next = $this->readByte();
-					$i = 0;
-					while($next != TAG_FINISH){
-
-						$resp = $this->parseTag($next);
-
-						if(is_array($resp) && isset($resp['name'])){
-
-							if(in_array($resp['name'], $listName)){
-								while(array_key_exists($resp['name'] . $i, $data)){
-									$i++;
-								}
-								$offset = $resp['name'] . $i;
-								$data[$offset] = $resp['data'];
-								$i = 0;
-							}
-							else{
-								$data[$resp['name']] = $resp['data'];
-								$i = 0;
-							}
-
-						}
-						else{
-							array_push($data, $resp);
-						}
-
-						$next = $this->readByte();
-
-					}
-
-					break;
-
-				case TAG_INT3:
-					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					break;
-
-				case TAG_STRING:
-					$data = $this->readString();
-					break;
-
-				case TAG_DOUBLE:
-					$data = $this->readDouble();
-					break;
-
-				case TAG_FLOAT:
-					$data = $this->readFloat();
-					break;
-
-
-				case TAG_LONG:
-					$data = $this->readInt64();
-					break;
-
-				case TAG_INT:
-					$data = $this->readInt32();
-					break;
-
-				case TAG_SHORT:
-					$data = $this->readInt16();
-					break;
-
-				case TAG_BYTE:
-					$data = $this->readInt8();
-					break;
+				case TAG_RGBA:
+					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat(), $this->readFloat());
+				break;
 
 				default:
-					echo 'Warning: Unrecognized tag type in parseTag -> '. dechex(ord($type)). chr(13).chr(10);
-					break;
+					echo 'Warning: Unrecognized tag type in parseTag() -> '. dechex(ord($type)). chr(13).chr(10);
+				break;
 			}
 
 			return $data;
@@ -791,60 +959,60 @@
 
 		private function parseList($type){
 			$data = null;
-			
+
 			switch($type){
 				case TAG_STR_BYTE:
 					$data = $this->readInt8();
-					break;
+				break;
 
 				case TAG_STR_SHORT:
 					$data = $this->readInt16();
-					break;
+				break;
 
 				case TAG_STR_INT:
 					$data = $this->readInt32();
-					break;
+				break;
 
 				case TAG_STR_LONG:
 					$data = $this->readInt64();
-					break;
+				break;
 
 				case TAG_STR_FLOAT:
 					$data = $this->readFloat();
-					break;
+				break;
 
 				case TAG_STR_DOUBLE:
 					$data = $this->readDouble();
-					break;
+				break;
 
 				case TAG_STR_BYTEARRAY:
 					$data = array();
 					$len = $this->readInt32();
-					
+
 					for($i = 0; $i < $len; $i++){
 						array_push($data, $this->readInt8());
 					}
-					
-					break;
+
+				break;
 
 				case TAG_STR_STRING:
 					$data = $this->readString();
-					break;
+				break;
 
 				case TAG_STR_FLOAT3:
 					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat());
-					break;
+				break;
 
 				case TAG_STR_INT3:
 					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					break;
+				break;
 
 				case TAG_STR_BYTE3:
 					$data = array($this->readInt8(), $this->readInt8(), $this->readInt8());
-					break;
+				break;
 
 				default:
-					echo 'Warning: Unrecognized tag type  in parseList -> '. dechex(ord($type)). chr(13).chr(10);
+					echo 'Warning: Unrecognized tag type  in parseList() -> '. dechex(ord($type)). chr(13).chr(10);
 					break;
 			}
 
@@ -860,26 +1028,32 @@
 
 			for($i = 0; $i < count($ships); $i++){
 				$name		= $ships[$i][0];
-				$shipPerm	= $ships[$i][2];
+				$shipPerm	= $this->formatPerm($ships[$i][2]);
 
-				$shipPerm	= sprintf("%08d", decbin($shipPerm));
-				$shipPerm	= chunk_split($shipPerm, 1);
-				
 				$perm = array(
-					'faction'	=> ($shipPerm[8] == '1')? true : false,
-					'other'		=> ($shipPerm[7] == '1')? true : false,
-					'homeBase'	=> ($shipPerm[6] == '1')? true : false
+					'faction'	=> $shipPerm[0],
+					'other'		=> $shipPerm[1],
+					'homeBase'	=> $shipPerm[2]
 				);
 
 				$data[$name] = array(
 					'creator'		=> $ships[$i][1],
 					'permission'	=> $perm,
 					'price'			=> $ships[$i][3],
-					'description'	=> $ships[$i][4]
+					'description'	=> $ships[$i][4],
 				);
 
+				//version 0.17+
+				if(count($ships[$i]) > 5){
+					$data[$name]['long_b']	= $ships[$i][5]; 
+					$data[$name]['int_b']	= $ships[$i][6]; 
+				}
+
 				if(isset($rateList[$name])){
-					$data[$name]['rate']	= $rateList[$name];
+					for($j = 0; $j < count($rateList[$name]); $j++){
+						$user = $rateList[$name][$j][0];
+						$data[$name]['rate'][$user]	= $rateList[$name][$j][1];
+					}
 				}
 
 			}
@@ -889,84 +1063,97 @@
 
 		private function formatFac($ent){
 			$data		= array();
-			$factions	= $ent['factions-v0'][0];
-			$NStruct	= $ent['factions-v0']['NStruct'];
 			$news		= array();
+			$factions	= $ent['factions-v0'][0]['f0'];
 
-			foreach($NStruct as $key => $val){
-				if(is_array($NStruct[$key])){
+			if(array_key_exists('FN' ,$ent['factions-v0']['NStruct'])){
+				$tmpNews	= $ent['factions-v0']['NStruct']['FN']['fp-v0'];
 
-					foreach($NStruct[$key] as $key2 => $val2){
-						$dt		= (string)$NStruct[$key][$key2]['dt'];
+				for($i = 0; $i < count($tmpNews); $i++){
+					$dt		= (string)$tmpNews[$i]['dt'];
 
-						$news[$dt] = array(
-							'fid'		=> $NStruct[$key][$key2]['id'],
-							'author'	=> $NStruct[$key][$key2]['op'],
-							'msg'		=> $NStruct[$key][$key2]['msg'],
-							'perm'		=> $NStruct[$key][$key2]['perm'],
-						);
-
-					}
-
+					$news[$dt] = array(
+						'fid'		=> $tmpNews[$i]['id'],
+						'author'	=> $tmpNews[$i]['op'],
+						'msg'		=> $tmpNews[$i]['msg'],
+						'perm'		=> $tmpNews[$i]['perm'],
+					);
 				}
 			}
 
-			foreach($factions as $key => $val){
-				$id = $factions[$key]['id'];
+			for($i = 0; $i < count($factions); $i++){
+				$id = $factions[$i]['id'];
 
-				$data[$id]['uid']			= $factions[$key][0];
-				$data[$id]['name']			= $factions[$key][1];
-				$data[$id]['description']	= $factions[$key][2];
+				$data[$id]['uid']			= $factions[$i][0];
+				$data[$id]['name']			= $factions[$i][1];
+				$data[$id]['description']	= $factions[$i][2];
 				$data[$id]['ranks']			= array();
-
-				for($j = 0; $j < count($factions[$key]['mem0']); $j++){
-					$player	= $factions[$key]['mem0'][$j][0];
-					$rank	= $factions[$key]['mem0'][$j][1];
-
-					$data[$id]['member'][$player] = $rank;
-				}
-
-				$data[$id]['pEnemies'] = array();
-				for($j = 0; $j < count($factions[$key]['mem1']); $j++){
-					$player	= $factions[$key]['mem1'][$j];
-
-					array_push($data[$id]['pEnemies'], $player);
-				}
+				$data[$id]['member']		= array();
+				$data[$id]['pEnemies']		= array();
+				$data[$id]['home']			= array();
+				$data[$id]['pw']			= $factions[$i]['pw'];
+				$data[$id]['fn']			= $factions[$i]['fn'];
 
 				//Populate $data[$id]['ranks']
-				for($j = 0; $j < count($factions[$key]['00'][2]); $j++){
-					$arr['name'] = $factions[$key]['00'][2][$j];
+				for($j = 0; $j < count($factions[$i]['used_0'][0][1]); $j++){
 
-					$perm = $factions[$key]['00'][1][$j];
-					$perm = sprintf("%08d", decbin($perm));
-					$perm = chunk_split($perm, 1);
-
-					$arr['perm'] = array(
-						'edit'				=> ($perm[8] == '1')? true : false,
-						'kick'				=> ($perm[7] == '1')? true : false,
-						'invite'			=> ($perm[6] == '1')? true : false,
-						'permission-edit'	=> ($perm[5] == '1')? true : false
+					$perm = $this->formatPerm($factions[$i]['used_0'][0][1][$j]);
+					$arr			= array();
+					$arr['name']	= $factions[$i]['used_0'][0][2][$j];
+					$arr['perm']	= array(
+						'edit'				=> $perm[0],
+						'kick'				=> $perm[1],
+						'invite'			=> $perm[2],
+						'permission-edit'	=> $perm[3]
 					);
 
 					array_push($data[$id]['ranks'], $arr);
 				}
 
-				$data[$id]['pw']	= $factions[$key]['pw'];
-				$data[$id]['fn']	= $factions[$key]['fn'];
+				//Populate $data[$id]['member']
+				if(count($factions[$i]['mem'][0]) > 0){
 
-				$data[$id]['home']['uid']		= $factions[$key]['home'];
-				$data[$id]['home']['sector']	= array(
-					'x' => $factions[$key][5][0],
-					'y' => $factions[$key][5][1],
-					'z' => $factions[$key][5][2]
+					if(is_array($factions[$i]['mem'][0][0]))
+
+						for($j = 0; $j < count($factions[$i]['mem'][0]); $j++){
+							$name						= $factions[$i]['mem'][0][$j][0];
+							$data[$id]['member'][$name]	= $factions[$i]['mem'][0][$j][1];
+						}
+
+					else {
+						$name						= $factions[$i]['mem'][0][0];
+						$data[$id]['member'][$name]	= $factions[$i]['mem'][0][1];
+					}
+
+				}
+
+				//Populate $data[$id]['pEnemies']
+				for($j = 0; $j < count($factions[$i]['mem'][1]); $j++){
+					$name						= $factions[$i]['mem'][1][$j];
+					array_push($data[$id]['pEnemies'], $name);
+				}
+
+				$data[$id]['home'] = array(
+					'uid'		=> $factions[$i]['home'],
+					'sector'	=> $this->vector3($factions[$i][5])
 				);
 
-				$data[$id]['options'] = array(
-					'public'		=> ($factions[$key][4] == 1) ? true : false,
-					'warOnHostile'	=> ($factions[$key]['aw'] == 1) ? true : false,
-					'NeutralEnemy'	=> ($factions[$key]['en'] == 1) ? true : false,
+				$data[$id]['options']	= array(
+					'public'			=> ($factions[$i][4] == 1) ? true : false,
+					'warOnHostile'		=> ($factions[$i]['aw'] == 1) ? true : false,
+					'NeutralEnemy'		=> ($factions[$i]['en'] == 1) ? true : false,
 				);
 
+				$data[$id]['unk']	= array();
+				$data[$id]['unk']['timestamp']	= $factions[$i][3];
+
+				//version 0.17+
+				if(count($factions[$i]) > 14){
+					$data[$id]['unk']['int_a']	= $factions[$i][6];
+					$data[$id]['unk']['v3f_a']	= $factions[$i][7];
+				}
+
+				$data[$id]['news']			= array();
 				foreach($news as $key2 => $val2){
 					if($news[$key2]['fid'] == $id){
 
@@ -985,148 +1172,19 @@
 
 		private function formatShop($ent){
 			$sc = $ent['ShopSpaceStation2']['sc'];
-			$uid = $sc['uniqueId'];
-			$transform = $sc['transformable']['transform'];
-
-			//dim part
-			$maxPos = array(
-				'x' => $sc['maxPos'][0],
-				'y' => $sc['maxPos'][1],
-				'z' => $sc['maxPos'][2]
-			);
-
-			$minPos = array(
-				'x' => $sc['minPos'][0],
-				'y' => $sc['minPos'][1],
-				'z' => $sc['minPos'][2]
-			);
-
-			$dim = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-
-			//docking part, test for retro-compatibility
-			if(array_key_exists('dock', $sc)){
-				//older version
-				$dockedToPos = array(
-					'x' => $sc['dock']['dockedToPos'][0],
-					'y' => $sc['dock']['dockedToPos'][1],
-					'z' => $sc['dock']['dockedToPos'][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc['dock']['dockedTo'],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc['dock'][0],
-					'byte_b'		=> $sc['dock'][1],
-					's'				=> $sc['dock']['s'],
-				);
-
-			}
-			else{
-				//version 0.1+
-				$dockedToPos = array(
-					'x' => $sc[0][1][0],
-					'y' => $sc[0][1][1],
-					'z' => $sc[0][1][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc[0][0],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc[0][2],
-					'byte_b'		=> $sc[0][3],
-					's'				=> $sc[0]['s'],
-				);
-
-			}
-
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'noAI'			=> $sc['transformable']['noAI'],
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//creatoreId part
-			$creatoreId = array(
-				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
-				'lastMod'	=> $sc['2'],
-				'seed'		=> $sc['3'],
-				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'genId'		=> $sc['creatoreId']
-			);
-
-			if(array_key_exists('5', $sc)){
-				$creatoreId['byte_a'] = $sc['5'];
-			}
-			else {
-				$creatoreId['byte_a'] = -1;
-			}
-
-			//inventory part
-			$inv = $ent['ShopSpaceStation2']['inventory0'];
-			$inv['credits'] = $ent['ShopSpaceStation2'][0][4];
-
-			//unk_last part
-			$unk = array(
-				'double_a'	=> $ent['ShopSpaceStation2'][0][0],
-				'byte_a'	=> $ent['ShopSpaceStation2'][0][1],
-				'arrData_a'	=> $ent['ShopSpaceStation2'][0][2],
-				'byte_b'	=> $ent['ShopSpaceStation2'][0][3],
-				'arrData_b'	=> $ent['ShopSpaceStation2'][0][5]
-			);
-
 
 			$data = array(
-				'uniqueId'		=> $uid,
+				'uniqueId'		=> $sc['uniqueId'],
 				'type'			=> $this->type,
 				'cs1'			=> htmlentities((string)$sc['cs1']),
 				'realname'		=> ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'],
-				'dim'			=> $dim,
-				'dock'			=> $dock,
-				'transformable'	=> $transformable,
+				'dim'			=> $this->formatDim($sc),
+				'dock'			=> $this->formatDocking($sc),
+				'transformable'	=> $this->formatTransformable($sc['transformable']),
 				'dummy'			=> $sc['dummy'],
-				'creatorId'		=> $creatoreId,
-				'inventory'		=> $inv,
-				'unk_last'		=> $unk
+				'creatorId'		=> $this->formatCreator($sc),
+				'inventory'		=> $this->formatInv($ent['ShopSpaceStation2']['inv']),
+				'struct_c'		=> $ent['ShopSpaceStation2'][0]
 			);
 
 			return $data;
@@ -1134,189 +1192,18 @@
 
 		private function formatStation($ent){
 			$sc			= $ent['SpaceStation']['sc'];
-			$uid		= $sc['uniqueId'];
-			$transform	= $sc['transformable']['transform'];
-			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
-			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
-
-			//dim part
-			$maxPos = array(
-				'x' => $sc['maxPos'][0],
-				'y' => $sc['maxPos'][1],
-				'z' => $sc['maxPos'][2]
-			);
-
-			$minPos = array(
-				'x' => $sc['minPos'][0],
-				'y' => $sc['minPos'][1],
-				'z' => $sc['minPos'][2]
-			);
-
-			$dim = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-
-			//docking part, test for retro-compatibility
-			if(array_key_exists('dock', $sc)){
-				//older version
-				$dockedToPos = array(
-					'x' => $sc['dock']['dockedToPos'][0],
-					'y' => $sc['dock']['dockedToPos'][1],
-					'z' => $sc['dock']['dockedToPos'][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc['dock']['dockedTo'],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc['dock'][0],
-					'byte_b'		=> $sc['dock'][1],
-					's'				=> $sc['dock']['s'],
-				);
-
-			}
-			else{
-				//version 0.1+
-				$dockedToPos = array(
-					'x' => $sc[0][1][0],
-					'y' => $sc[0][1][1],
-					'z' => $sc[0][1][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc[0][0],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc[0][2],
-					'byte_b'		=> $sc[0][3],
-					's'				=> $sc[0]['s'],
-				);
-
-			}
-
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$ai = array();
-			if($isAI0){
-				$ai[0] = $AIConfig['AIElement0']['state'];
-				$ai[1] = $AIConfig['AIElement1']['state'];
-				$ai[2] = $AIConfig['AIElement2']['state'];
-			}
-			else {
-				for($i = 0; $i < count($AIConfig); $i++){
-					$type	= $AIConfig[$i][0];
-					$state	= $AIConfig[$i][1];
-					$ai[$type] = $state;
-				}
-			}
-
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'AIConfig'		=> $ai,
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//contenair part
-			$contStruct = array();
-			$oriController = $sc['container']['controllerStructure'];
-			foreach($oriController as $key => $val){
-				$arr = array(
-					'type'		=> $oriController[$key]['type'],
-					'index'		=> $oriController[$key]['index'],
-					'inventory'	=> $oriController[$key]['inventory0']
-				);
-				
-				array_push($contStruct, $arr);
-			}
-
-			$shipMan = array();
-			$oriShipMan = $sc['container']['shipMan0'];
-			foreach($oriShipMan as $key => $val){
-				array_push($shipMan, $oriShipMan[$key]);
-			}
-
-			$unk = array(
-				'double_a'	=> $sc['container']['exS'][0][0],
-				'long_a'	=> $sc['container']['exS'][0][1],
-				'arrData_a'	=> $sc['container']['exS'][0][2],
-				'byte_a'	=> $sc['container']['exS'][0][3],
-				'arrData_b'	=> $sc['container']['exS'][0][5]
-			);
-
-			$exS = array(
-				'inventory'	=> $sc['container']['exS']['inventory0'],
-				'unk'		=> $unk
-			);
-
-			$contenair = array(
-				'controllerStructure'	=> $contStruct,
-				'shipMan0'				=> $shipMan,
-				'power'					=> $sc['container']['pw'],
-				'shield'				=> $sc['container']['sh'],
-				'exS'					=> $exS
-			);
-
-			//creatoreId part
-			$creatoreId = array(
-				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
-				'lastMod'	=> $sc['2'],
-				'seed'		=> $sc['3'],
-				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'genId'		=> $sc['creatoreId']
-			);
-
-			if(array_key_exists('5', $sc)){
-				$creatoreId['byte_a'] = $sc['5'];
-			}
-			else {
-				$creatoreId['byte_a'] = -1;
-			}
 
 			//final array
 			$data = array(
-				'uniqueId'		=> $uid,
+				'uniqueId'		=> $sc['uniqueId'],
 				'type'			=> $this->type,
 				'cs1'			=> htmlentities((string)$sc['cs1']),
 				'realname'		=> ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'],
-				'dim'			=> $dim,
-				'dock'			=> $dock,
-				'transformable'	=> $transformable,
-				'container'		=> $contenair,
-				'creatorId'		=> $creatoreId
+				'dim'			=> $this->formatDim($sc),
+				'dock'			=> $this->formatDocking($sc),
+				'transformable'	=> $this->formatTransformable($sc['transformable']),
+				'container'		=> $this->formatContainer($sc['container']),
+				'creatorId'		=> $this->formatCreator($sc)
 			);
 
 			return $data;
@@ -1324,607 +1211,108 @@
 
 		private function formatAst($ent){
 			$sc = $ent['sc'];
-			$uid = $sc['uniqueId'];
-			$transform = $sc['transformable']['transform'];
 
-			//dim part
-			$maxPos = array(
-				'x' => $sc['maxPos'][0],
-				'y' => $sc['maxPos'][1],
-				'z' => $sc['maxPos'][2]
-			);
-
-			$minPos = array(
-				'x' => $sc['minPos'][0],
-				'y' => $sc['minPos'][1],
-				'z' => $sc['minPos'][2]
-			);
-
-			$dim = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-
-			//docking part
-			$dockedToPos = array(
-				'x' => $sc[0][1][0],
-				'y' => $sc[0][1][1],
-				'z' => $sc[0][1][2]
-			);
-
-			$dock = array(
-				'dockedTo'		=> $sc[0][0],
-				'dockedToPos'	=> $dockedToPos,
-				'byte_a'		=> $sc[0][2],
-				'byte_b'		=> $sc[0][3],
-				's'				=> $sc[0]['s'],
-			);
-
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'noAI'			=> $sc['transformable']['noAI'],
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//creatoreId part
-			$creatoreId = array(
-				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
-				'lastMod'	=> $sc['2'],
-				'seed'		=> $sc['3'],
-				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'byte_a'	=> $sc['5'],
-				'genId'		=> $sc['creatoreId']
-			);
-
-
-			$data = array(
-				'uniqueId'		=> $uid,
+			//final array
+			return array(
+				'uniqueId'		=> $sc['uniqueId'],
 				'type'			=> $this->type,
-				'cs1'			=> htmlentities((string)$sc['cs1']),
-				'realname'		=> ($sc['realname'] == 'undef') ? 'Shop' : $sc['realname'],
-				'dim'			=> $dim,
-				'dock'			=> $dock,
-				'transformable'	=> $transformable,
+				'cs1'			=> (string)$sc['cs1'],
+				'realname'		=> ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'],
+				'dim'			=> $this->formatDim($sc),
+				'dock'			=> $this->formatDocking($sc),
+				'transformable'	=> $this->formatTransformable($sc['transformable']),
 				'dummy'			=> $sc['dummy'],
-				'creatorId'		=> $creatoreId
+				'creatorId'		=> $this->formatCreator($sc)
 			);
+		}
 
-			/*$data[$uid]['type'] = $this->type;
+		private function formatPlanCore($ent){
+			$sc = $ent[0]['PlanetCore'];
+			$uid = $sc[0];
 
-			$data[$uid]['dim']['maxPos']['x'] = $sc['maxPos'][0];
-			$data[$uid]['dim']['maxPos']['y'] = $sc['maxPos'][1];
-			$data[$uid]['dim']['maxPos']['z'] = $sc['maxPos'][2];
-
-			$data[$uid]['dim']['minPos']['x'] = $sc['minPos'][0];
-			$data[$uid]['dim']['minPos']['y'] = $sc['minPos'][1];
-			$data[$uid]['dim']['minPos']['z'] = $sc['minPos'][2];
-
-			$data[$uid]['dock']['dockedTo'] = $sc[0][0];
-			$data[$uid]['dock']['dockedToPos']['x'] = $sc[0][1][0];
-			$data[$uid]['dock']['dockedToPos']['y'] = $sc[0][1][1];
-			$data[$uid]['dock']['dockedToPos']['z'] = $sc[0][1][2];
-			$data[$uid]['dock']['byte_a'] = $sc[0][2];
-			$data[$uid]['dock']['byte_b'] = $sc[0][3];
-			$data[$uid]['dock']['s'] = $sc[0]['s'];
-
-			$data[$uid]['cs1'] = htmlentities((string)$sc['cs1']);
-			$data[$uid]['realname'] = ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'];
-
-			$data[$uid]['transformable']['mass'] = $sc['transformable']['mass'];
-
-			$data[$uid]['transformable']['transformX']['x'] = $transform[0];
-			$data[$uid]['transformable']['transformX']['y'] = $transform[1];
-			$data[$uid]['transformable']['transformX']['z'] = $transform[2];
-
-			$data[$uid]['transformable']['transformY']['x'] = $transform[4];
-			$data[$uid]['transformable']['transformY']['y'] = $transform[5];
-			$data[$uid]['transformable']['transformY']['z'] = $transform[6];
-
-			$data[$uid]['transformable']['transformZ']['x'] = $transform[8];
-			$data[$uid]['transformable']['transformZ']['y'] = $transform[9];
-			$data[$uid]['transformable']['transformZ']['z'] = $transform[10];
-
-			$data[$uid]['transformable']['localPos']['x'] = $transform[12];
-			$data[$uid]['transformable']['localPos']['y'] = $transform[13];
-			$data[$uid]['transformable']['localPos']['z'] = $transform[14];
-
-			$data[$uid]['transformable']['sPos']['x'] = $sc['transformable']['sPos'][0];
-			$data[$uid]['transformable']['sPos']['y'] = $sc['transformable']['sPos'][1];
-			$data[$uid]['transformable']['sPos']['z'] = $sc['transformable']['sPos'][2];
-
-			$data[$uid]['transformable']['noAI'] = $sc['transformable']['noAI'];
-			$data[$uid]['transformable']['fid'] = $sc['transformable']['fid'];
-			$data[$uid]['transformable']['own'] = $sc['transformable']['own'];
-
-			$data[$uid]['dummy'] = $sc['dummy'];
-
-			$data[$uid]['creatorId']['creator'] = ($sc['1'] == '') ? '<system>' : $sc['1'];
-			$data[$uid]['creatorId']['lastMod'] = $sc['2'];
-			$data[$uid]['creatorId']['seed'] = $sc['3'];
-			$data[$uid]['creatorId']['touched'] = ($sc['4'] == 1) ? true : false;
-			$data[$uid]['creatorId']['byte_z'] = $sc['5'];
-			$data[$uid]['creatorId']['genId'] = $sc['creatoreId'];*/
-
-			return $data;
+			//final array
+			return array(
+				'uniqueId'			=> $uid,
+				'float_a'			=> $sc[1],
+				'struct_a'			=> $sc[2],
+				'struct_b'			=> $sc[3],
+				'struct_c'			=> $sc[4],
+				'struct_d'			=> $sc[5],
+				'struct_e'			=> $sc[6],
+				'transformable'		=> $this->formatTransformable($sc['transformable']),
+				'transformable2'	=> $this->formatTransformable($ent[0]['transformable']),
+			);
 		}
 
 		private function formatPlan($ent){
 			$sc = $ent['Planet']['sc'];
-			$uid = $sc['uniqueId'];
-			$transform = $sc['transformable']['transform'];
-			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
-			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
-
-			$maxPos = array(
-				'x' => $sc['maxPos'][0],
-				'y' => $sc['maxPos'][1],
-				'z' => $sc['maxPos'][2]
-			);
-
-			$minPos = array(
-				'x' => $sc['minPos'][0],
-				'y' => $sc['minPos'][1],
-				'z' => $sc['minPos'][2]
-			);
-
-			$dim = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-
-			//docking part, test for retro-compatibility
-			if(array_key_exists('dock', $sc)){
-				//older version
-				$dockedToPos = array(
-					'x' => $sc['dock']['dockedToPos'][0],
-					'y' => $sc['dock']['dockedToPos'][1],
-					'z' => $sc['dock']['dockedToPos'][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc['dock']['dockedTo'],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc['dock'][0],
-					'byte_b'		=> $sc['dock'][1],
-					's'				=> $sc['dock']['s'],
-				);
-
-			}
-			else{
-				//version 0.1+
-				$dockedToPos = array(
-					'x' => $sc[0][1][0],
-					'y' => $sc[0][1][1],
-					'z' => $sc[0][1][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc[0][0],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc[0][2],
-					'byte_b'		=> $sc[0][3],
-					's'				=> $sc[0]['s'],
-				);
-
-			}
-
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$ai = array();
-			if($isAI0){
-				$ai[0] = $AIConfig['AIElement0']['state'];
-				$ai[1] = $AIConfig['AIElement1']['state'];
-				$ai[2] = $AIConfig['AIElement2']['state'];
-			}
-			else {
-				for($i = 0; $i < count($AIConfig); $i++){
-					$type	= $AIConfig[$i][0];
-					$state	= $AIConfig[$i][1];
-					$ai[$type] = $state;
-				}
-			}
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'AIConfig'		=> $ai,
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//contenair part
-			$contStruct = array();
-			$oriController = $sc['container']['controllerStructure'];
-			foreach($oriController as $key => $val){
-				$arr = array(
-					'type'		=> $oriController[$key]['type'],
-					'index'		=> $oriController[$key]['index'],
-					'inventory'	=> $oriController[$key]['inventory0']
-				);
-				
-				array_push($contStruct, $arr);
-			}
-
-			$shipMan = array();
-			$oriShipMan = $sc['container']['shipMan0'];
-			foreach($oriShipMan as $key => $val){
-				array_push($shipMan, $oriShipMan[$key]);
-			}
-
-			$unk = array(
-				'double_a'	=> $sc['container']['exS'][0][0],
-				'long_a'	=> $sc['container']['exS'][0][1],
-				'arrData_a'	=> $sc['container']['exS'][0][2],
-				'byte_a'	=> $sc['container']['exS'][0][3],
-				'arrData_b'	=> $sc['container']['exS'][0][5]
-			);
-
-			$exS = array(
-				'inventory'	=> $sc['container']['exS']['inventory0'],
-				'unk'		=> $unk
-			);
-
-			$contenair = array(
-				'controllerStructure'	=> $contStruct,
-				'shipMan0'				=> $shipMan,
-				'power'					=> $sc['container']['pw'],
-				'shield'				=> $sc['container']['sh'],
-				'exS'					=> $exS
-			);
-
-			//creatoreId part
-			$creatoreId = array(
-				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
-				'lastMod'	=> $sc['2'],
-				'seed'		=> $sc['3'],
-				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'genId'		=> $sc['creatoreId']
-			);
-
-			if(array_key_exists('5', $sc)){
-				$creatoreId['byte_a'] = $sc['5'];
-			}
-			else {
-				$creatoreId['byte_a'] = -1;
-			}
 
 			//final array
-			$data = array(
-				'uniqueId'		=> $uid,
+			return array(
+				'uniqueId'		=> $sc['uniqueId'],
+				'core'			=> $ent['Planet'][1],
 				'type'			=> $this->type,
 				'byte_a'		=> $ent['Planet'][0],
 				'cs1'			=> htmlentities((string)$sc['cs1']),
 				'realname'		=> ($sc['realname'] == 'undef') ? 'Planet' : $sc['realname'],
-				'dim'			=> $dim,
-				'dock'			=> $dock,
-				'transformable'	=> $transformable,
-				'container'		=> $contenair,
-				'creatorId'		=> $creatoreId
+				'dim'			=> $this->formatDim($sc),
+				'dock'			=> $this->formatDocking($sc),
+				'transformable'	=> $this->formatTransformable($sc['transformable']),
+				'container'		=> $this->formatContainer($sc['container']),
+				'creatorId'		=> $this->formatCreator($sc)
 			);
-
-			return $data;
 		}
 
 		private function formatShip($ent){
-			$sc = $ent['sc'];
-			$uid = $sc['uniqueId'];
-			$transform = $sc['transformable']['transform'];
-			$isAI0		= array_key_exists('AIConfig0', $sc['transformable']);
-			$AIConfig	= $isAI0 ? $sc['transformable']['AIConfig0'] : $sc['transformable']['AIConfig1']; //AIConfig0 < dev 0.107
-
-			//dim part
-			$maxPos = array(
-				'x' => $sc['maxPos'][0],
-				'y' => $sc['maxPos'][1],
-				'z' => $sc['maxPos'][2]
-			);
-
-			$minPos = array(
-				'x' => $sc['minPos'][0],
-				'y' => $sc['minPos'][1],
-				'z' => $sc['minPos'][2]
-			);
-
-			$dim = array(
-				'maxPos' => $maxPos,
-				'minPos' => $minPos
-			);
-
-			//docking part, test for retro-compatibility
-			if(array_key_exists('dock', $sc)){
-				//older version
-				$dockedToPos = array(
-					'x' => $sc['dock']['dockedToPos'][0],
-					'y' => $sc['dock']['dockedToPos'][1],
-					'z' => $sc['dock']['dockedToPos'][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc['dock']['dockedTo'],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc['dock'][0],
-					'byte_b'		=> $sc['dock'][1],
-					's'				=> $sc['dock']['s'],
-				);
-
-			}
-			else{
-				//version 0.1+
-				$dockedToPos = array(
-					'x' => $sc[0][1][0],
-					'y' => $sc[0][1][1],
-					'z' => $sc[0][1][2]
-				);
-
-				$dock = array(
-					'dockedTo'		=> $sc[0][0],
-					'dockedToPos'	=> $dockedToPos,
-					'byte_a'		=> $sc[0][2],
-					'byte_b'		=> $sc[0][3],
-					's'				=> $sc[0]['s'],
-				);
-
-			}
-
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$ai = array();
-			if($isAI0){
-				$ai[0] = $AIConfig['AIElement0']['state'];
-				$ai[1] = $AIConfig['AIElement1']['state'];
-				$ai[2] = $AIConfig['AIElement2']['state'];
-			}
-			else {
-				for($i = 0; $i < count($AIConfig); $i++){
-					$type	= $AIConfig[$i][0];
-					$state	= $AIConfig[$i][1];
-					$ai[$type] = $state;
-				}
-			}
-
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'AIConfig'		=> $ai,
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//contenair part
-			$contStruct = array();
-			$oriController = $sc['container']['controllerStructure'];
-			foreach($oriController as $key => $val){
-				$arr = array(
-					'type'		=> $oriController[$key]['type'],
-					'index'		=> $oriController[$key]['index'],
-					'inventory'	=> $oriController[$key]['inventory0']
-				);
-				
-				array_push($contStruct, $arr);
-			}
-
-			$shipMan = array();
-			$oriShipMan = $sc['container']['shipMan0'];
-			foreach($oriShipMan as $key => $val){
-				array_push($shipMan, $oriShipMan[$key]);
-			}
-
-			$contenair = array(
-				'controllerStructure'	=> $contStruct,
-				'shipMan0'				=> $shipMan,
-				'power'					=> $sc['container']['pw'],
-				'shield'				=> $sc['container']['sh'],
-				'ex'					=> $sc['container']['ex']
-			);
-
-			//creatoreId part
-			$creatoreId = array(
-				'creator'	=> ($sc['1'] == '') ? '<system>' : $sc['1'],
-				'lastMod'	=> $sc['2'],
-				'seed'		=> $sc['3'],
-				'touched'	=> ($sc['4'] == 1) ? true : false,
-				'genId'		=> $sc['creatoreId']
-			);
-
-			if(array_key_exists('5', $sc)){
-				$creatoreId['byte_a'] = $sc['5'];
-			}
-			else {
-				$creatoreId['byte_a'] = -1;
-			}
+			$sc			= $ent['sc'];
 
 			//final array
-			$data = array(
-				'uniqueId'		=> $uid,
+			return array(
+				'uniqueId'		=> $sc['uniqueId'],
 				'type'			=> $this->type,
-				'cs1'			=> htmlentities((string)$sc['cs1']),
+				'cs1'			=> (string)$sc['cs1'],
 				'realname'		=> ($sc['realname'] == 'undef') ? 'Asteroid' : $sc['realname'],
-				'dim'			=> $dim,
-				'dock'			=> $dock,
-				'transformable'	=> $transformable,
-				'container'		=> $contenair,
-				'creatorId'		=> $creatoreId
+				'dim'			=> $this->formatDim($sc),
+				'dock'			=> $this->formatDocking($sc),
+				'transformable'	=> $this->formatTransformable($sc['transformable']),
+				'container'		=> $this->formatContainer($sc['container']),
+				'creatorId'		=> $this->formatCreator($sc)
 			);
-
-			return $data;
 		}
 
 		private function formatChar($ent, $pseudo){
 			$data = array();
 			$sc = $ent['PlayerCharacter'];
-			$transform = $sc['transformable']['transform'];
 
-			//transform part
-			$transX = array(
-				'x' => $transform[0],
-				'y' => $transform[1],
-				'z' => $transform[2]
-			);
-
-			$transY = array(
-				'x' => $transform[4],
-				'y' => $transform[5],
-				'z' => $transform[6]
-			);
-
-			$transZ = array(
-				'x' => $transform[8],
-				'y' => $transform[9],
-				'z' => $transform[10]
-			);
-
-			$localPos = array(
-				'x' => $transform[12],
-				'y' => $transform[13],
-				'z' => $transform[14]
-			);
-
-			$sPos = array(
-				'x' => $sc['transformable']['sPos'][0],
-				'y' => $sc['transformable']['sPos'][1],
-				'z' => $sc['transformable']['sPos'][2]
-			);
-
-			$transformable = array(
-				'mass'			=> $sc['transformable']['mass'],
-				'transformX'	=> $transX,
-				'transformY'	=> $transY,
-				'transformZ'	=> $transZ,
-				'localPos'		=> $localPos,
-				'sPos'			=> $sPos,
-				'noAI'			=> $sc['transformable']['noAI'],
-				'fid'			=> $sc['transformable']['fid'],
-				'own'			=> $sc['transformable']['own']
-			);
-
-			//final array
 			$data = array(
 				'name'			=> $pseudo,
 				'id'			=> $sc['id'],
 				'speed'			=> $sc['speed'],
 				'stepHeight'	=> $sc['stepHeight'],
-				'transformable'	=> $transformable
+				'transformable'	=> $this->formatTransformable($sc['transformable'])
 			);
 
 			return $data;
 		}
 
 		private function formatStats($ent, $pseudo){
-			$sc = $ent['PlayerState'];
+			$sc		= $ent['PlayerState'];
+			$hist	= array();
+			$inv	= array();
+			$invx	= array();
+			$ships	= array();
+			$AI		= array();
 
-			$hist = array();
 			for($i = 0; $i < count($sc['hist']); $i++){
 
 				$hist[$i] = array(
 					'timestamp'	=> $sc['hist'][$i][0],
-					'ip'		=> $sc['hist'][$i][1]
+					'ip'		=> $sc['hist'][$i][1],
+					'string_c'	=> $sc['hist'][$i][2]
 				);
 
 			}
 
-			$ships = array();
 			for($i = 0; $i < count($sc[$pseudo]); $i++){
 
 				$ships[$i] = array(
@@ -1934,20 +1322,36 @@
 
 			}
 
+			for($i = 6; $i < 9; $i++){
+				$invx['int_a']	= $sc[$i][0][0];
+				$invx['inv']	= $this->formatInv($sc[$i]['inv']);
+
+				array_push($inv, $invx);
+			}
+
+			for($i = 0; $i < count($sc[4][0]); $i++){
+				array_push($AI, $sc[4][0][$i]);
+			}
+
 			$data = array(
 				'name'			=> $pseudo,
 				'credits'		=> $sc['credits'],
-				'inventory'		=> $sc['inventory0'],
-				'spawn'			=> $sc['spawn'],
-				'sector'		=> $sc['sector'],
-				'lspawn'		=> $sc['lspawn'],
-				'lsector'		=> $sc['lsector'],
+				'inventory'		=> $this->formatInv($sc['inv']),
+				'spawn'			=> $this->vector3($sc['spawn']),
+				'sector'		=> $this->vector3($sc['sector']),
+				'lspawn'		=> $this->vector3($sc['lspawn']),
+				'lsector'		=> $this->vector3($sc['lsector']),
 				'fid'			=> $sc['pFac-v0'][0],
 				'lastLogin'		=> $sc[0],
-				'unk_timestamp'	=> $sc[1],
+				'lastLogout'	=> $sc[1],
 				'hist'			=> $hist,
+				'ci0'			=> $sc['ci0'],
 				'lastShip'		=> $sc[2],
-				$pseudo			=> $ships
+				'ships'			=> $ships,
+				'AI_Entity'		=> $AI,
+				'int_b'			=> $sc[3],
+				'byte_a'		=> $sc[5],
+				'unk_invs'		=> $inv
 			);
 
 			return $data;
@@ -1982,6 +1386,7 @@
 			$data = array();
 			$data['int_a'] = $ent['int_a'];
 			$data['byte_a'] = $ent['byte_a'];
+
 			if(array_key_exists('byte_b', $ent)){
 				$data['byte_b'] = $ent['byte_b'];
 			}
@@ -1992,77 +1397,292 @@
 				$data['docked'] = $ent['docked'];
 			}
 			if(array_key_exists('container', $ent)){
-				$data['container'] = array();
+				$data['container'] = $this->formatContainer($ent['container']);
+			}
+			return $data;
+		}
 
-				$data['container']['controllerStructure'] = $ent['container']['controllerStructure'];
-				$data['container']['shipMan0'] = array();
 
-				foreach($ent['container']['shipMan0'] as $wep => $val){
-					$comp = "";
-					switch($wep){
-						case 'wepContr0':
-							$comp = '6';
-						break;
+		//============================= Sub Formater =============================//
+		private function formatPerm($int){
+			$perm	= str_pad(decbin($int), 16, '0', STR_PAD_LEFT);
+			$perm	= str_split($perm, 1);
+			$arr	= array();
 
-						case 'wepContr1':
-							$comp = '38';
-						break;
+			for($i = count($perm); $i--;){
+				array_push($arr, ($perm[$i] == '1')? true : false);
+			}
 
-						case 'wepContr2':
-							$comp = '54';
-						break;
+			return $arr;
+		}
 
-						case 'wepContr3':
-							$comp = '46';
-						break;
-					}
+		private function vector3($arr){
+			return array(
+				'x' => $arr[0],
+				'y' => $arr[1],
+				'z' => $arr[2]
+			);
+		}
 
-					$data['container']['shipMan0'][$comp] = array();
+		private function vector4($arr){
+			return array(
+				'x' => $arr[0],
+				'y' => $arr[1],
+				'z' => $arr[2],
+				'w' => $arr[3]
+			);
+		}
 
-					foreach($ent['container']['shipMan0'][$wep] as $d => $val){
-						$data['container']['shipMan0'][$comp][$d] = array();
+		private function colorRGBA($arr){
+			return array(
+				'r' => $arr[0],
+				'g' => $arr[1],
+				'b' => $arr[2],
+				'a' => $arr[3]
+			);
+		}
 
-						if(array_key_exists('PointDist0', $ent['container']['shipMan0'][$wep][$d])){
-							foreach($ent['container']['shipMan0'][$wep][$d] as $PontDist => $val){
+		private function formatDim($sc){
+			return array(
+				'maxPos' => $this->vector3($sc['maxPos']),
+				'minPos' => $this->vector3($sc['minPos'])
+			);
+		}
 
-								$data['container']['shipMan0'][$comp][$d][$PontDist] = array();
-								$cPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][0] . ",";
-								$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][1] . ",";
-								$cPos = $cPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['controller'][2];
+		private function formatDocking($arr){
+			if(array_key_exists('dock', $arr)){
+				//older version
+				return array(
+					'dockedTo'		=> $arr['dock']['dockedTo'],
+					'dockedToPos'	=> $this->vector3($arr['dock']['dockedToPos']),
+					'byte_a'		=> $arr['dock'][0],
+					'byte_b'		=> $arr['dock'][1],
+					's'				=> $arr['dock']['s']
+				);
+			}
+			else{
 
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['controller'] = $cPos;
-
-								$idPos = $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][0] . ",";
-								$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][1] . ",";
-								$idPos = $idPos . $ent['container']['shipMan0'][$wep][$d][$PontDist]['idPos'][2];
-
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['idPos'] = $idPos;
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'] = array();
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][0] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][0][1];
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][1] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][1][1];
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][2] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][2][1];
-								$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][3] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][3][1];
-								if(array_key_exists(4, $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'])){
-									$data['container']['shipMan0'][$comp][$d][$PontDist]['EffectStruct'][4] = $ent['container']['shipMan0'][$wep][$d][$PontDist]['EffectStruct'][4][1];
-								}
-
-							}
-						}
-
-					}
-
+				if(count($arr[0]) === 5){
+					//version 0.107
+					return array(
+						'dockedTo'		=> $arr[0][0],
+						'dockedToPos'	=> $this->vector3($arr[0][1]),
+						'byte_a'		=> $arr[0][2],
+						'byte_b'		=> $arr[0][3],
+						's'				=> $arr[0]['s']
+					);
+				}
+				else {
+					//version 0.17+
+					return array(
+						'dockedTo'		=> $arr[0][0],
+						'dockedToPos'	=> $this->vector3($arr[0][1]),
+						'byte_a'		=> $arr[0][2],
+						'byte_b'		=> $arr[0][3],
+						'v3f'			=> $this->vector3($arr[0]['s']),
+						'byte_c'		=> $arr[0][4],
+						'v4f'			=> $this->vector4($arr[0][5])
+					);
 				}
 
-				$data['container']['pw'] = $ent['container']['pw'];
-				$data['container']['sh'] = $ent['container']['sh'];
-				$data['container']['ex'] = $ent['container']['ex'];
+			}
+		}
+
+		private function formatTransformable($arr){
+			$transform	= $this->formatTransform($arr['transform']);
+			$noAI		= array_key_exists('noAI', $arr);
+
+			return array(
+				'mass'			=> $arr['mass'],
+				'transformX'	=> $transform[0],
+				'transformY'	=> $transform[1],
+				'transformZ'	=> $transform[2],
+				'localPos'		=> $transform[3],
+				'sPos'			=> $this->vector3($arr['sPos']),
+				'AIConfig'		=> $noAI ? 'noAI' : $this->formatAIConfig($arr),
+				'fid'			=> $arr['fid'],
+				'own'			=> $arr['own']
+			);
+		}
+
+		private function formatTransform($arr){
+			$transX		= $this->vector4([$arr[0], $arr[1], $arr[2], $arr[3]]);
+			$transY		= $this->vector4([$arr[4], $arr[5], $arr[6], $arr[7]]);
+			$transZ		= $this->vector4([$arr[8], $arr[9], $arr[10], $arr[11]]);
+			$localPos	= $this->vector4([$arr[12], $arr[13], $arr[14], $arr[15]]);
+
+			return array($transX, $transY, $transZ, $localPos);
+		}
+
+		private function formatAIConfig($arr){
+			$isAI0		= array_key_exists('AIConfig0', $arr);
+			$AIConfig	= $isAI0 ? $arr['AIConfig0'] : $arr['AIConfig1']; //AIConfig0 < dev 0.107
+			$data		= array();
+
+			if($isAI0){
+				$data = array(
+					$AIConfig['AIElement0']['state'],
+					$AIConfig['AIElement1']['state'],
+					$AIConfig['AIElement2']['state']
+				);
+			}
+			else {
+				for($i = 0; $i < count($AIConfig); $i++){
+					$data[$AIConfig[$i][0]]	= $AIConfig[$i][1];
+				}
+			}
+
+			return $data;
+
+		}
+
+		private function formatCount($arr){
+			$data	= array();
+
+			for($i = 0; $i < count($arr); $i++){
+				array_push($data, array(
+					'id'	=> $arr[$i][0],
+					'count'	=> $arr[$i][1],
+				));
 			}
 
 			return $data;
 		}
 
-		//============================= Binary Decoders =============================//
+		private function formatInv($inv){
+			$data = array();
 
+			for($i = 0; $i < count($inv[0]); $i++){
+				$arr	= array();
+				$slot	= $inv[0][$i];
+				$id		= $inv[1][$i];
+				$tmp	= $inv[2][$i];
+				$count	= null;
+				$meta	= null;
+
+				if(is_array($tmp)){
+					$count	= 1;
+
+					$meta	= array(
+						'id'		=> $tmp[1],
+						'metaId'	=> $tmp[3],
+						'meta'		=> $tmp[2],
+						'int_a'		=> $tmp[0]
+					);
+				}
+				else {
+					$count	= $tmp;
+				}
+
+				$arr[$slot] = array(
+					'id'	=> $id,
+					'count'	=> $count,
+					'meta'	=> $meta
+				);
+
+				array_push($data, $arr);
+			}
+
+			return $data;
+		}
+
+		private function formatContainer($container){
+			$contStruct		= array();
+			if(array_key_exists('inventory', $container['controllerStructure'])){
+				$oriController	= $container['controllerStructure']['inventory'];
+
+				for($i = 0; $i < count($oriController); $i++){
+					$stash = array(
+						'filters'	=> $this->formatCount($oriController[$i]['stash'][0][1]),
+						'inv'		=> $this->formatInv($oriController[$i]['stash']['inv'])
+					);
+
+					$arr	= array(
+						'type'		=> $oriController[$i]['type'],
+						'index'		=> $oriController[$i]['index'],
+						'stash'		=> $stash
+					);
+
+					array_push($contStruct, $arr);
+				}
+			}
+
+			$ex = null;
+			if(array_key_exists('exS', $container)){
+				$ex = 'exS';
+			}
+			else {
+				$ex = 'ex';
+			}
+
+			return array(
+				'controllerStructure'	=> $contStruct,
+				'shipMan0'				=> $container['shipMan0'],
+				'power'					=> $container['pw'],
+				'shield'				=> $container['sh'],
+				'ex'					=> $container[$ex],
+				'a'						=> $container['a'],
+				'screen'				=> $container[0],
+				'device'				=> $this->formatCount($container[1]),
+				'struct_c'				=> $container[3],
+				'int_c'					=> $container[2]
+			);
+		}
+
+		private function formatCreator($sc){
+			$AI	= array();
+			foreach($sc as $key => $value){
+				if(strpos($key, '[') === 0){
+					$str				= substr($key, 1, -1);
+					$str				= explode(', ', $str);
+
+					for($i = 0; $i < count($str); $i++){
+
+						if(strpos($str[$i], 'AICharacter') === 0){
+
+							$data	= array(
+								'name'			=> $sc[$key][$i][1][3],
+								'uid'			=> $sc[$key][$i][1][0],
+								'speed'			=> $sc[$key][$i][1][1],
+								'stepHeight'	=> $sc[$key][$i][1][2],
+								'HP'			=> $sc[$key][$i][1][4][1],
+								'transformable'	=> $this->formatTransformable($sc[$key][$i][1]['transformable']),
+								'inventory'		=> $this->formatInv($sc[$key][$i][1][4]['inv'])
+							);
+
+							$AI[$str[$i]] = array(
+								'short_a'	=> $sc[$key][$i][0],
+								'data'		=> $data
+							);
+						}
+
+					}
+
+				}
+			}
+
+			$creatoreId = array(
+				'creator'	=> ($sc[1] == '') ? '<system>' : $sc[1],
+				'lastMod'	=> $sc[2],
+				'seed'		=> $sc[3],
+				'touched'	=> ($sc[4] == 1) ? true : false,
+				'genId'		=> $sc['creatoreId'],
+				'AI_Entity'	=> $AI,
+				'byte_b'	=> $sc[5],
+				'byte_c'	=> $sc[6]
+			);
+
+			if(array_key_exists('5', $sc)){
+				$creatoreId['byte_a'] = $sc['5'];
+			}
+			else {
+				$creatoreId['byte_a'] = -1;
+			}
+
+			return $creatoreId;
+		}
+
+		//============================= Binary Decoders =============================//
 		private function readByte(){
 			return fread($this->stream, 1);
 		}
@@ -2105,6 +1725,26 @@
 			return $this->binToInt64($bytes);
 		}
 
+		private function readUInt8(){
+			$byte = fread($this->stream, 1);
+			return $this->binToUInt8($byte);
+		}
+
+		private function readUInt16(){
+			$bytes = fread($this->stream, 2);
+			return $this->binToUInt16($bytes);
+		}
+
+		private function readUInt32(){
+			$bytes = fread($this->stream, 4);
+			return $this->binToUInt32($bytes);
+		}
+
+		private function readUInt64(){
+			$bytes = fread($this->stream, 8);
+			return $this->binToUInt64($bytes);
+		}
+
 		private function readFloat(){
 			$bytes = fread($this->stream, 4);
 			return $this->binToFloat($bytes);
@@ -2116,8 +1756,7 @@
 		}
 
 		private function readString(){
-			$bytes = fread($this->stream, 2);
-			$length = $this->binToInt16($bytes);
+			$length = $this->readUInt16();
 			$string = '';
 			if($length > 0){
 				$string = fread($this->stream, $length);
@@ -2126,23 +1765,84 @@
 		}
 
 		public function binToInt8($binStr){
-			$byte = sprintf("%08b", ord($binStr));
-			return bindec($byte);
+			$bytes = null;
+			if(strlen($binStr) == 1){
+
+				for($i = 0; $i < strlen($binStr); $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
+				}
+
+				if($bytes[0] == "1"){
+					$out = "";
+					$mode = "init";
+
+					for($i = strlen($bytes)-1; $i >= 0; $i--){
+						if($mode != "init"){
+							$out = ($bytes[$i] == "0" ? "1" : "0").$out;
+						}
+						else{
+							if($bytes[$i] == "1"){
+								$out = "1".$out;
+								$mode = "invert";
+							}
+							else{
+								$out = "0".$out;
+							}
+						}
+					}
+
+					return bindec($out) * (-1);
+				}
+
+				return bindec($bytes);
+			}
+			else{
+				die("Error: int8 type have 1 bytes.\n");
+			}
 		}
 
 		public function binToInt16($binStr){
 			$bytes = null;
-			for($i = 0; $i < 2; $i++){
-				$bytes .= sprintf("%08b", ord($binStr[$i]));
+			if(strlen($binStr) == 2){
+
+				for($i = 0; $i < strlen($binStr); $i++){
+					$bytes .= sprintf("%08b", ord($binStr[$i]));
+				}
+
+				if($bytes[0] == "1"){
+					$out = "";
+					$mode = "init";
+
+					for($i = strlen($bytes)-1; $i >= 0; $i--){
+						if($mode != "init"){
+							$out = ($bytes[$i] == "0" ? "1" : "0").$out;
+						}
+						else{
+							if($bytes[$i] == "1"){
+								$out = "1".$out;
+								$mode = "invert";
+							}
+							else{
+								$out = "0".$out;
+							}
+						}
+					}
+
+					return bindec($out) * (-1);
+				}
+
+				return bindec($bytes);
 			}
-			return bindec($bytes);
+			else{
+				die("Error: int16 type have 2 bytes.\n");
+			}
 		}
 
 		public function binToInt32($binStr){
 			$bytes = null;
 			if(strlen($binStr) == 4){
 
-				for($i = 0; $i < 4; $i++){
+				for($i = 0; $i < strlen($binStr); $i++){
 					$bytes .= sprintf("%08b", ord($binStr[$i]));
 				}
 
@@ -2167,18 +1867,19 @@
 
 					return bindec($out) * (-1);
 				}
+
+				return bindec($bytes);
 			}
 			else{
-				die("Error: int type have 4 bytes.\n");
+				die("Error: int32 type have 4 bytes.\n");
 			}
-			return bindec($bytes);
 		}
 
 		public function binToInt64($binStr){
 			$bytes = null;
 			if(strlen($binStr) == 8){
 
-				for($i = 0; $i < 8; $i++){
+				for($i = 0; $i < strlen($binStr); $i++){
 					$bytes .= sprintf("%08b", ord($binStr[$i]));
 				}
 
@@ -2203,10 +1904,62 @@
 
 					return bindec($out) * (-1);
 				}
+
+				return bindec($bytes);
 			}
 			else{
-				die("Error: int type have 4 bytes.\n");
+				die("Error: int64 type have 8 bytes.\n");
 			}
+		}
+
+		public function binToUInt8($binStr){
+			if(!strlen($binStr) == 1){
+				die("Error: uint8 type have 1 bytes.\n");
+			}
+
+			$byte = sprintf("%08b", ord($binStr));
+			return bindec($byte);
+		}
+
+		public function binToUInt16($binStr){
+			if(!strlen($binStr) == 2){
+				die("Error: uint16 type have 2 bytes.\n");
+			}
+
+			$bytes = null;
+
+			for($i = 0; $i < 2; $i++){
+				$bytes .= sprintf("%08b", ord($binStr[$i]));
+			}
+
+			return bindec($bytes);
+		}
+
+		public function binToUInt32($binStr){
+			if(!strlen($binStr) == 4){
+				die("Error: uint32 type have 4 bytes.\n");
+			}
+
+			$bytes = null;
+
+			for($i = 0; $i < 2; $i++){
+				$bytes .= sprintf("%08b", ord($binStr[$i]));
+			}
+
+			return bindec($bytes);
+		}
+
+		public function binToUInt64($binStr){
+			if(!strlen($binStr) == 8){
+				die("Error: uint64 type have 8 bytes.\n");
+			}
+
+			$bytes = null;
+
+			for($i = 0; $i < 2; $i++){
+				$bytes .= sprintf("%08b", ord($binStr[$i]));
+			}
+
 			return bindec($bytes);
 		}
 
@@ -2280,8 +2033,8 @@
 		}
 
 		public function hexReverse($hex){
-			$return = "";
-			$hexArr = explode(" ", $hex);
+			$return	= "";
+			$hexArr	= explode(" ", $hex);
 
 			foreach ($hexArr as $i) {
 				$return = $i . " " . $return;
@@ -2300,8 +2053,8 @@
 				'a'=>10,	'b'=>11,	'c'=>12,	'd'=>13,
 				'e'=>14,	'f'=>15,
 			);
-			$return = '';
-			$hexArr = explode(' ', $hex);
+			$return	= '';
+			$hexArr	= explode(' ', $hex);
 
 			foreach ($hexArr as $i) {
 
@@ -2309,8 +2062,8 @@
 					return false;
 				}
 
-				$tmp = $hexVal[$i{0}] * 16 + $hexVal[$i{1}];
-				$return .= chr($tmp);
+				$tmp	= $hexVal[$i{0}] * 16 + $hexVal[$i{1}];
+				$return	.= chr($tmp);
 			}
 
 			return $return;
@@ -2320,7 +2073,7 @@
 			//Used to mask a portion of a bitfield.
 			$x = $x >> $start;
 			$x = $x & (pow(2, $len )-1);
-			
+
 			return $x;
 		}
 
@@ -2345,6 +2098,43 @@
 			}
 
 			return $convertedArray;
+		}
+
+		// function from saulius at php.net
+		public function zipFileErrMsg($errno) {
+			// using constant name as a string to make this function PHP4 compatible
+			$zipFileFunctionsErrors = array(
+				'ZIPARCHIVE::ER_MULTIDISK' => 'Multi-disk zip archives not supported.',
+				'ZIPARCHIVE::ER_RENAME' => 'Renaming temporary file failed.',
+				'ZIPARCHIVE::ER_CLOSE' => 'Closing zip archive failed',
+				'ZIPARCHIVE::ER_SEEK' => 'Seek error',
+				'ZIPARCHIVE::ER_READ' => 'Read error',
+				'ZIPARCHIVE::ER_WRITE' => 'Write error',
+				'ZIPARCHIVE::ER_CRC' => 'CRC error',
+				'ZIPARCHIVE::ER_ZIPCLOSED' => 'Containing zip archive was closed',
+				'ZIPARCHIVE::ER_NOENT' => 'No such file.',
+				'ZIPARCHIVE::ER_EXISTS' => 'File already exists',
+				'ZIPARCHIVE::ER_OPEN' => 'Can\'t open file',
+				'ZIPARCHIVE::ER_TMPOPEN' => 'Failure to create temporary file.',
+				'ZIPARCHIVE::ER_ZLIB' => 'Zlib error',
+				'ZIPARCHIVE::ER_MEMORY' => 'Memory allocation failure',
+				'ZIPARCHIVE::ER_CHANGED' => 'Entry has been changed',
+				'ZIPARCHIVE::ER_COMPNOTSUPP' => 'Compression method not supported.',
+				'ZIPARCHIVE::ER_EOF' => 'Premature EOF',
+				'ZIPARCHIVE::ER_INVAL' => 'Invalid argument',
+				'ZIPARCHIVE::ER_NOZIP' => 'Not a zip archive',
+				'ZIPARCHIVE::ER_INTERNAL' => 'Internal error',
+				'ZIPARCHIVE::ER_INCONS' => 'Zip archive inconsistent',
+				'ZIPARCHIVE::ER_REMOVE' => 'Can\'t remove file',
+				'ZIPARCHIVE::ER_DELETED' => 'Entry has been deleted',
+			);
+			$errmsg = 'unknown';
+			foreach ($zipFileFunctionsErrors as $constName => $errorMessage) {
+				if (defined($constName) and constant($constName) === $errno) {
+					return 'Zip File Function error: '.$errorMessage;
+				}
+			}
+			return 'Zip File Function error: unknown';
 		}
 	}
 ?>
