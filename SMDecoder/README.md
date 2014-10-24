@@ -3,8 +3,8 @@ SMDecoder Class
 
 Description: Intergrate Starmade files within your own projects.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.6-rev00011  
-SM-Version: dev build 0.107  
+Version: 0.6-rev00030  
+SM-Version: dev build 0.175  
 Date: 2014-01-03  
   
 By Blackcancer  
@@ -15,6 +15,12 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
+0.6-rev00030:
+-	Update to StarMade 0.175
+-	Added support for .sment (not for docked parts)
+-	Added support for .smskin
+-	Improve formating code
+
 0.6-rev00013:
 -	Correction of formatMeta()
 -	Correction of meta data decoder (docking byte)  
