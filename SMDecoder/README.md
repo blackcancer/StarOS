@@ -3,7 +3,7 @@ SMDecoder Class
 
 Description: Intergrate Starmade files within your own projects.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.6-rev00030  
+Version: 0.6-rev00033  
 SM-Version: dev build 0.175  
 Date: 2014-01-03  
   
@@ -15,6 +15,12 @@ support: blackcancer@initsysrev.net
 
 
 ### ==> CHANGELOG <==
+0.6-rev00033:
+-	Remove uesless variables
+-	Update vectors decoding
+-	Rename some value
+-	creation of SMDecode.js for node.js
+
 0.6-rev00030:
 -	Update to StarMade 0.175
 -	Added support for .sment (not for docked parts)
