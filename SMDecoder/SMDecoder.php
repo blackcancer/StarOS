@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00030						Date: 2014-01-03
+		FileVersion: 0.6-rev00033						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -180,11 +180,10 @@
 		//============================= Main Decoder =============================//
 		private function mainDecoder(){
 			$data = array();
-			$data['short_a'] = $this->readInt16();
+			$data['gzip'] = $this->readInt16();
 			$tag = $this->readByte();
-			print_r($tag);
 
-			while($tag != ''){
+			while($tag != TAG_FINISH){
 
 				$resp = $this->parseTag($tag);
 
@@ -253,14 +252,14 @@
 
 			$return['int_a']	= $this->readInt32();
 			$return['type']		= $this->readInt32();
-			$return['bounds_n']	= array($this->readFloat(), $this->readFloat(), $this->readFloat());
-			$return['bounds_p']	= array($this->readFloat(), $this->readFloat(), $this->readFloat());
+			$return['bounds_n']	= $this->vector3([$this->readFloat(), $this->readFloat(), $this->readFloat()]);
+			$return['bounds_p']	= $this->vector3([$this->readFloat(), $this->readFloat(), $this->readFloat()]);
 
-			$return['blockTableLen'] = $this->readInt32();
+			$return['blockTableLen'] = $this->readUInt32();
 
 			$return['blocks'] = array();
 			for($i = 0; $i < $return['blockTableLen']; $i++){
-				$return['blocks'][$this->readInt16()] = $this->readInt32();
+				$return['blocks'][$this->readUInt16()] = $this->readUInt32();
 			}
 
 			return $return;
@@ -312,22 +311,22 @@
 
 			while (ftell($this->stream) < $fileSize){
 				$return['int_a']	= $this->readInt32();
-				$ctrLen		= $this->readInt32();
+				$ctrLen				= $this->readUInt32();
 
 				$return['controllers'] = array();
 				for($i = 0; $i < $ctrLen; $i++){
-					$dict			= array();
-					$dict['pos']	= array($this->readInt16(), $this->readInt16(), $this->readInt16());
-					$numGrp			= $this->readInt32();
+					$dict				= array();
+					$dict['position']	= $this->vector3([$this->readInt16(), $this->readInt16(), $this->readInt16()]);
+					$numGrp				= $this->readUInt32();
 
-					$dict['q'] = array();
+					$dict['group'] = array();
 					for($j = 0; $j < $numGrp; $j++){
 						$tag		= $this->readInt16();
-						$numBlocks	= $this->readInt32();
+						$numBlocks	= $this->readUInt32();
 
-						$dict['q'][$tag] = array();
+						$dict['group'][$tag] = array();
 						for($x = 0; $x < $numBlocks; $x++){
-							array_push($dict['q'][$tag], array($this->readInt16(), $this->readInt16(), $this->readInt16()));
+							array_push($dict['group'][$tag], $this->vector3([$this->readInt16(), $this->readInt16(), $this->readInt16()]));
 						}
 					}
 					array_push($return['controllers'], $dict);
@@ -376,19 +375,15 @@
 			$return['byte_a']	= $this->readInt8();
 
 			if($return['byte_a'] == 3){
-				$numDocked			= $this->readInt32();
+				$numDocked			= $this->readUInt32();
 
 				$return['docked'] = array();
 				for($i = 0; $i < $numDocked; $i++){
-					$name		= $this->readString();
-					$q			= array($this->readInt32(), $this->readInt32(), $this->readInt32());
-					$a			= array($this->readFloat(), $this->readFloat(), $this->readFloat());
-					$docking	= $this->readInt16();
 					$arr		= array(
-						'name' => $name,
-						'q' => $q,
-						'a' => $a,
-						'dockID' => $docking
+						'name'		=> $this->readString(),
+						'position'	=> $this->vector3([$this->readInt32(), $this->readInt32(), $this->readInt32()]),
+						'v3f'		=> $this->vector3([$this->readFloat(), $this->readFloat(), $this->readFloat()]),
+						'dockType'	=> $this->readInt16()
 					);
 
 					array_push($return['docked'], $arr);
@@ -469,7 +464,7 @@
 
 				if($chunkId != -1){
 					$pos	= array(($i % 16) - 8, (($i / 16) % 16) - 8, (($i / 256) % 16) - 8);
-					$posStr	= $pos[0] . ',' . $pos[1] . ',' . $pos[2];
+					$posStr	= ($pos[0] * 16) . ',' . ($pos[1] * 16) . ',' . ($pos[2] * 16);
 
 					$data['chunkIndex'][$posStr] = array(
 						'id'	=> $chunkId,
@@ -485,7 +480,7 @@
 
 				if($timestamp > 0){
 					$pos	= array(($i % 16) - 8, (($i / 16) % 16) - 8, (($i / 256) % 16) - 8);
-					$posStr	= $pos[0] . ',' . $pos[1] . ',' . $pos[2];
+					$posStr	= ($pos[0] * 16) . ',' . ($pos[1] * 16) . ',' . ($pos[2] * 16);
 
 					$data['chunkTimestamps'][$posStr] = $timestamp;
 				}
@@ -528,7 +523,7 @@
 
 					if($blockId != 0){
 						$pos	= array($j % 16, ($j / 16) % 16, ($j / 256) % 16);
-						$posStr	= $pos[0].','.$pos[1].','.$pos[2];
+						$posStr	= ($pos[0] * 16) . ',' . ($pos[1] * 16) . ',' . ($pos[2] * 16);
 
 						$chunkDict['blocks'][$posStr] = array(
 							'id'		=> $blockId,
@@ -782,20 +777,20 @@
 
 				case TAG_STR_FLOAT3:
 					$data['name'] = $this->readString();
-					$data['data'] = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					$data['data'] = $this->vector3($this->readFloat(), $this->readFloat(), $this->readFloat());
 				break;
 
 				case TAG_FLOAT3:
-					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					$data = $this->vector3($this->readFloat(), $this->readFloat(), $this->readFloat());
 				break;
 
 				case TAG_STR_INT3:
 					$data['name'] = $this->readString();
-					$data['data'] = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					$data['data'] = $this->vector3($this->readInt32(), $this->readInt32(), $this->readInt32());
 				break;
 
 				case TAG_INT3:
-					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					$data = $this->vector3($this->readInt32(), $this->readInt32(), $this->readInt32());
 				break;
 
 				case TAG_STR_BYTE3:
@@ -946,7 +941,7 @@
 				break;
 
 				case TAG_RGBA:
-					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat(), $this->readFloat());
+					$data = $this->colorRGBA($this->readFloat(), $this->readFloat(), $this->readFloat(), $this->readFloat());
 				break;
 
 				default:
@@ -1000,11 +995,11 @@
 				break;
 
 				case TAG_STR_FLOAT3:
-					$data = array($this->readFloat(), $this->readFloat(), $this->readFloat());
+					$data = $this->vector3($this->readFloat(), $this->readFloat(), $this->readFloat());
 				break;
 
 				case TAG_STR_INT3:
-					$data = array($this->readInt32(), $this->readInt32(), $this->readInt32());
+					$data = $this->vector3($this->readInt32(), $this->readInt32(), $this->readInt32());
 				break;
 
 				case TAG_STR_BYTE3:
@@ -1088,7 +1083,7 @@
 				$data[$id]['name']			= $factions[$i][1];
 				$data[$id]['description']	= $factions[$i][2];
 				$data[$id]['ranks']			= array();
-				$data[$id]['member']		= array();
+				$data[$id]['members']		= array();
 				$data[$id]['pEnemies']		= array();
 				$data[$id]['home']			= array();
 				$data[$id]['pw']			= $factions[$i]['pw'];
@@ -1113,13 +1108,14 @@
 				//Populate $data[$id]['member']
 				if(count($factions[$i]['mem'][0]) > 0){
 
-					if(is_array($factions[$i]['mem'][0][0]))
+					if(is_array($factions[$i]['mem'][0][0])){
 
 						for($j = 0; $j < count($factions[$i]['mem'][0]); $j++){
 							$name						= $factions[$i]['mem'][0][$j][0];
 							$data[$id]['member'][$name]	= $factions[$i]['mem'][0][$j][1];
 						}
 
+					}
 					else {
 						$name						= $factions[$i]['mem'][0][0];
 						$data[$id]['member'][$name]	= $factions[$i]['mem'][0][1];
@@ -1135,7 +1131,7 @@
 
 				$data[$id]['home'] = array(
 					'uid'		=> $factions[$i]['home'],
-					'sector'	=> $this->vector3($factions[$i][5])
+					'sector'	=> $factions[$i][5]
 				);
 
 				$data[$id]['options']	= array(
@@ -1144,13 +1140,12 @@
 					'NeutralEnemy'		=> ($factions[$i]['en'] == 1) ? true : false,
 				);
 
-				$data[$id]['unk']	= array();
-				$data[$id]['unk']['timestamp']	= $factions[$i][3];
+				$data[$id]['timestamp']	= $factions[$i][3];
 
 				//version 0.17+
 				if(count($factions[$i]) > 14){
-					$data[$id]['unk']['int_a']	= $factions[$i][6];
-					$data[$id]['unk']['v3f_a']	= $factions[$i][7];
+					$data[$id]['int_a']	= $factions[$i][6];
+					$data[$id]['v3f_a']	= $factions[$i][7];
 				}
 
 				$data[$id]['news']			= array();
@@ -1228,11 +1223,10 @@
 
 		private function formatPlanCore($ent){
 			$sc = $ent[0]['PlanetCore'];
-			$uid = $sc[0];
 
 			//final array
 			return array(
-				'uniqueId'			=> $uid,
+				'uniqueId'			=> $sc[0],
 				'float_a'			=> $sc[1],
 				'struct_a'			=> $sc[2],
 				'struct_b'			=> $sc[3],
@@ -1252,7 +1246,7 @@
 				'uniqueId'		=> $sc['uniqueId'],
 				'core'			=> $ent['Planet'][1],
 				'type'			=> $this->type,
-				'byte_a'		=> $ent['Planet'][0],
+				'part'			=> $ent['Planet'][0],
 				'cs1'			=> htmlentities((string)$sc['cs1']),
 				'realname'		=> ($sc['realname'] == 'undef') ? 'Planet' : $sc['realname'],
 				'dim'			=> $this->formatDim($sc),
@@ -1316,8 +1310,8 @@
 			for($i = 0; $i < count($sc[$pseudo]); $i++){
 
 				$ships[$i] = array(
-					'ship'	=> $sc[$pseudo][$i][0],
-					'unk'	=> $sc[$pseudo][$i][1]
+					'ship'		=> $sc[$pseudo][$i][0],
+					'struct_a'	=> $sc[$pseudo][$i][1]
 				);
 
 			}
@@ -1337,10 +1331,10 @@
 				'name'			=> $pseudo,
 				'credits'		=> $sc['credits'],
 				'inventory'		=> $this->formatInv($sc['inv']),
-				'spawn'			=> $this->vector3($sc['spawn']),
-				'sector'		=> $this->vector3($sc['sector']),
-				'lspawn'		=> $this->vector3($sc['lspawn']),
-				'lsector'		=> $this->vector3($sc['lsector']),
+				'spawn'			=> $sc['spawn'],
+				'sector'		=> $sc['sector'],
+				'lspawn'		=> $sc['lspawn'],
+				'lsector'		=> $sc['lsector'],
 				'fid'			=> $sc['pFac-v0'][0],
 				'lastLogin'		=> $sc[0],
 				'lastLogout'	=> $sc[1],
@@ -1359,20 +1353,21 @@
 
 		private function formatLogic($ent){
 			$data = array();
-			$data['int_a'] = $ent['int_a'];
-			$data['controllers'] = array();
+			$data['int_a']			= $ent['int_a'];
+			$data['controllers']	= array();
 
 			for($i = 0; $i < count($ent['controllers']); $i++){
-				$pos = $ent['controllers'][$i]['pos'][0] . "," . $ent['controllers'][$i]['pos'][1] . "," . $ent['controllers'][$i]['pos'][2];
+				$pos = $ent['controllers'][$i]['position']['x'] . "," . $ent['controllers'][$i]['position']['y'] . "," . $ent['controllers'][$i]['position']['z'];
 				$data['controllers'][$pos] = array();
 
-				foreach($ent['controllers'][$i]['q'] as $key => $val){
+				foreach($ent['controllers'][$i]['group'] as $key => $val){
 					if(count($val) > 0){
 						if(!array_key_exists($key, $data['controllers'][$pos])){
 							$data['controllers'][$pos][$key] = array();
-							foreach($ent['controllers'][$i]['q'][$key] as $subKey => $subVal){
-								array_push($data['controllers'][$pos][$key], $subVal[0] . "," . $subVal[1] . "," . $subVal[2]);
-							}
+						}
+
+						foreach($ent['controllers'][$i]['group'][$key] as $subKey => $subVal){
+							array_push($data['controllers'][$pos][$key], $subVal);
 						}
 					}
 				}
@@ -1383,19 +1378,8 @@
 		}
 
 		private function formatMeta($ent){
-			$data = array();
-			$data['int_a'] = $ent['int_a'];
-			$data['byte_a'] = $ent['byte_a'];
+			$data = $ent;
 
-			if(array_key_exists('byte_b', $ent)){
-				$data['byte_b'] = $ent['byte_b'];
-			}
-			if(array_key_exists('gzip', $ent)){
-				$data['gzip'] = $ent['gzip'];
-			}
-			if(array_key_exists('docked', $ent)){
-				$data['docked'] = $ent['docked'];
-			}
 			if(array_key_exists('container', $ent)){
 				$data['container'] = $this->formatContainer($ent['container']);
 			}
@@ -1416,36 +1400,36 @@
 			return $arr;
 		}
 
-		private function vector3($arr){
+		private function vector3($x, $y, $z){
 			return array(
-				'x' => $arr[0],
-				'y' => $arr[1],
-				'z' => $arr[2]
+				'x' => $x,
+				'y' => $y,
+				'z' => $z
 			);
 		}
 
-		private function vector4($arr){
+		private function vector4($x, $y, $z, $w){
 			return array(
-				'x' => $arr[0],
-				'y' => $arr[1],
-				'z' => $arr[2],
-				'w' => $arr[3]
+				'x' => $x,
+				'y' => $y,
+				'z' => $z,
+				'w' => $w
 			);
 		}
 
-		private function colorRGBA($arr){
+		private function colorRGBA($r, $g, $b, $a ){
 			return array(
-				'r' => $arr[0],
-				'g' => $arr[1],
-				'b' => $arr[2],
-				'a' => $arr[3]
+				'r' => $r,
+				'g' => $g,
+				'b' => $b,
+				'a' => $a]
 			);
 		}
 
 		private function formatDim($sc){
 			return array(
-				'maxPos' => $this->vector3($sc['maxPos']),
-				'minPos' => $this->vector3($sc['minPos'])
+				'maxPos' => $sc['maxPos'],
+				'minPos' => $sc['minPos']
 			);
 		}
 
@@ -1454,7 +1438,7 @@
 				//older version
 				return array(
 					'dockedTo'		=> $arr['dock']['dockedTo'],
-					'dockedToPos'	=> $this->vector3($arr['dock']['dockedToPos']),
+					'dockedToPos'	=> $arr['dock']['dockedToPos'],
 					'byte_a'		=> $arr['dock'][0],
 					'byte_b'		=> $arr['dock'][1],
 					's'				=> $arr['dock']['s']
@@ -1466,7 +1450,7 @@
 					//version 0.107
 					return array(
 						'dockedTo'		=> $arr[0][0],
-						'dockedToPos'	=> $this->vector3($arr[0][1]),
+						'dockedToPos'	=> $arr[0][1],
 						'byte_a'		=> $arr[0][2],
 						'byte_b'		=> $arr[0][3],
 						's'				=> $arr[0]['s']
@@ -1476,12 +1460,12 @@
 					//version 0.17+
 					return array(
 						'dockedTo'		=> $arr[0][0],
-						'dockedToPos'	=> $this->vector3($arr[0][1]),
+						'dockedToPos'	=> $arr[0][1],
 						'byte_a'		=> $arr[0][2],
 						'byte_b'		=> $arr[0][3],
-						'v3f'			=> $this->vector3($arr[0]['s']),
+						'v3f'			=> $arr[0]['s'],
 						'byte_c'		=> $arr[0][4],
-						'v4f'			=> $this->vector4($arr[0][5])
+						'rgba'			=> $arr[0][5]
 					);
 				}
 
@@ -1498,7 +1482,7 @@
 				'transformY'	=> $transform[1],
 				'transformZ'	=> $transform[2],
 				'localPos'		=> $transform[3],
-				'sPos'			=> $this->vector3($arr['sPos']),
+				'sPos'			=> $arr['sPos'],
 				'AIConfig'		=> $noAI ? 'noAI' : $this->formatAIConfig($arr),
 				'fid'			=> $arr['fid'],
 				'own'			=> $arr['own']
@@ -1506,10 +1490,10 @@
 		}
 
 		private function formatTransform($arr){
-			$transX		= $this->vector4([$arr[0], $arr[1], $arr[2], $arr[3]]);
-			$transY		= $this->vector4([$arr[4], $arr[5], $arr[6], $arr[7]]);
-			$transZ		= $this->vector4([$arr[8], $arr[9], $arr[10], $arr[11]]);
-			$localPos	= $this->vector4([$arr[12], $arr[13], $arr[14], $arr[15]]);
+			$transX		= $this->vector4($arr[0], $arr[1], $arr[2], $arr[3]);
+			$transY		= $this->vector4($arr[4], $arr[5], $arr[6], $arr[7]);
+			$transZ		= $this->vector4($arr[8], $arr[9], $arr[10], $arr[11]);
+			$localPos	= $this->vector4($arr[12], $arr[13], $arr[14], $arr[15]);
 
 			return array($transX, $transY, $transZ, $localPos);
 		}
@@ -1557,30 +1541,28 @@
 				$slot	= $inv[0][$i];
 				$id		= $inv[1][$i];
 				$tmp	= $inv[2][$i];
-				$count	= null;
 				$meta	= null;
 
 				if(is_array($tmp)){
-					$count	= 1;
-
 					$meta	= array(
 						'id'		=> $tmp[1],
 						'metaId'	=> $tmp[3],
 						'meta'		=> $tmp[2],
 						'int_a'		=> $tmp[0]
 					);
+
+					$data[$slot] = array(
+						'id'	=> $id,
+						'count'	=> 1,
+						'meta'	=> $meta
+					);
 				}
 				else {
-					$count	= $tmp;
+					$data[$slot] = array(
+						'id'	=> $id,
+						'count'	=> $tmp
+					);
 				}
-
-				$arr[$slot] = array(
-					'id'	=> $id,
-					'count'	=> $count,
-					'meta'	=> $meta
-				);
-
-				array_push($data, $arr);
 			}
 
 			return $data;
