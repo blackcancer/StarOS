@@ -9,10 +9,14 @@
 		
 		website: http://initsysrev.net
 		support: blackcancer@initsysrev.net
-
-		Header, Logic, Meta and Modele are adapted from "blueprint.py" by tambry.
-		Information about files structure can be found on StarMade wiki:
-		http://http://www.starmadewiki.com/wiki/File_format
+		credit: - http://phpjs.org
+				- Megacrafter127
+				- der_scheme
+				- tambry
+	
+		about format: Header, Logic, Meta and modeles are adapted from 
+		"blueprint.py" by trambry. You can find structure specification
+		at http://http://www.starmadewiki.com/wiki/File_format
 	*/
 
 	header('Content-Type: text/html; charset=UTF-8');
