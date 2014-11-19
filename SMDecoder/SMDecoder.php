@@ -56,9 +56,7 @@
 	define("TAG_INT",			chr(253));
 	define("TAG_SHORT",			chr(254));
 	define("TAG_BYTE",			chr(255));
-
-
-
+    
 	class SMDecoder{
 		private $stream;
 		private $type;
@@ -949,7 +947,7 @@
 				break;
 
 				default:
-					echo 'Warning: Unrecognized tag type in parseTag() -> '. dechex(ord($type)). chr(13).chr(10);
+                    trigger_error( 'Unrecognized tag type in parseTag() -> '. dechex(ord($type)). chr(13).chr(10) , E_USER_WARNING );
 				break;
 			}
 
@@ -1011,7 +1009,7 @@
 				break;
 
 				default:
-					echo 'Warning: Unrecognized tag type  in parseList() -> '. dechex(ord($type)). chr(13).chr(10);
+                  trigger_error( 'Unrecognized tag type  in parseList() -> '. dechex(ord($type)). chr(13).chr(10) , E_USER_WARNING );
 					break;
 			}
 
@@ -1426,7 +1424,7 @@
 				'r' => $r,
 				'g' => $g,
 				'b' => $b,
-				'a' => $a]
+				'a' => $a,
 			);
 		}
 
