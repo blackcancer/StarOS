@@ -56,7 +56,7 @@
 	define("TAG_INT",			chr(253));
 	define("TAG_SHORT",			chr(254));
 	define("TAG_BYTE",			chr(255));
-    
+
 	class SMDecoder{
 		private $stream;
 		private $type;
@@ -185,7 +185,7 @@
 			$data['gzip'] = $this->readInt16();
 			$tag = $this->readByte();
 
-			while($tag != TAG_FINISH){
+			while( ord($tag) != TAG_FINISH){
 
 				$resp = $this->parseTag($tag);
 
