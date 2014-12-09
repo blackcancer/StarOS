@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files within your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.6-rev00033						Date: 2014-01-03
+		FileVersion: 0.6-rev00035						Date: 2014-01-03
 		By Blackcancer
 		
 		website: http://initsysrev.net
@@ -13,7 +13,8 @@
 				- Megacrafter127
 				- der_scheme
 				- tambry
-	
+				- thecko
+
 		about format: Header, Logic, Meta and modeles are adapted from 
 		"blueprint.py" by trambry. You can find structure specification
 		at http://http://www.starmadewiki.com/wiki/File_format

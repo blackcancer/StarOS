@@ -3,61 +3,74 @@ SMDecoder Class
 
 Description: Intergrate Starmade files within your own projects.  
 License: [Creative Common](http://creativecommons.org/licenses/by/3.0/legalcode)  
-Version: 0.6-rev00033  
-SM-Version: dev build 0.175  
+Version: 0.6-rev00035  
+SM-Version: dev build 0.1852  
 Date: 2014-01-03  
   
 By Blackcancer  
 website: http://initsysrev.net  
 support: blackcancer@initsysrev.net  
+credit:  
+-	http://phpjs.org  
+-	Megacrafter127  
+-	der_scheme  
+-	tambry  
+-	thecko
 
 
 
 
 ### ==> CHANGELOG <==
-0.6-rev00033:
+0.6-rev00035:  
+-	fix decoding error 
+
+0.6-rev00034:  
+-	fix error in function colorRGBA()  
+-	change echo to PHP warning  
+
+0.6-rev00033:  
 -	Remove uesless variables
 -	Update vectors decoding
 -	Rename some value
 -	creation of SMDecode.js for node.js
 
-0.6-rev00030:
+0.6-rev00030:  
 -	Update to StarMade 0.175
 -	Added support for .sment (not for docked parts)
 -	Added support for .smskin
 -	Improve formating code
 
-0.6-rev00013:
+0.6-rev00013:  
 -	Correction of formatMeta()
 -	Correction of meta data decoder (docking byte)  
 
-0.6-rev00011:
+0.6-rev00011:  
 -	Add function formatLogic()  
 -	Add function formatMeta()  
 -	Correction of meta data decoder (multiple computers support)  
 
-0.6-rev00008:
+0.6-rev00008:  
 -	Correction for shop, planet, station and ship retro-compatibility  
 
-0.6-rev00007:
+0.6-rev00007:  
 -	Correction of shop retro-compatibility  
 
-0.6-rev00006:
+0.6-rev00006:  
 -	Update smd2 decoding for 0.1+ support  
 
-0.6-rev00005:
+0.6-rev00005:  
 -	Add personnal enemies support for FACTIONS.fac file  
 
-0.6-rev00004:
+0.6-rev00004:  
 -	Add retro-compatibility for StarMade < 0.1  
 
-0.6-rev00003:
+0.6-rev00003:  
 -	Add new tag chr(241) actual unknown  
 -	Update for AIConfig  
 -	Rework output format  
 -	Correction of date ;)  
 
-0.6:
+0.6:  
 -	Complete rework of class.  
 
 ### ==> SETUP <==
