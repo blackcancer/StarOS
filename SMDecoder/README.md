@@ -21,7 +21,7 @@ credit:
 
 
 ### ==> CHANGELOG <==
-0.6:  
+0.7:  
 -	Full rewrite of SMDecoder  
 -	Move binary decoder inside std.php  
 -	Move stream read functions inside std.php  
@@ -38,7 +38,7 @@ credit:
 ### ==> DOCUMENTATION <==
 
 Public functions syntax:  
-`decodeSMFile(string $file, bool $formated = false);`
+`decodeSMFile(string $file, bool $formated = false, $ext = null, $filesize = null);`
 
 return an array with decoded data. File format accepted are *.cat, *.fac, *.ent, *.smbph, *.smbpl, *.smbpm and *.smd2  
 If formated = true then return special formated array (will be used in StarOS projects);  
