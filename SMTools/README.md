@@ -25,10 +25,10 @@ credit:
 ### ==> CHANGELOG <==
 0.1:  
 -	Move SMDecoder to SMTools  
--	documentation of public functions  
+-	Documentation of public functions  
 -	First commit of SMUtils.php  
 -	First commit of SMEncode.php  
--	added exemple.php to explaine how to use thoses classes  
+-	Added exemple.php to explaine how to use thoses classes  
 
 ### ==> SETUP AND USE <==
 
@@ -36,5 +36,5 @@ credit:
 
 ### ==> DOCUMENTATION <==
 
-thoses classes provide some functions to read starmade encoded files, starmade configuration files and a basic OAuth2 login system
+Thoses classes provide some functions to read starmade encoded files, starmade configuration files and a basic OAuth2 login system
 -	see exemple.php and comments in each classes
