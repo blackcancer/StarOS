@@ -4,7 +4,7 @@
 		Description: Intergrate Starmade files in your own projects.
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.7								Date: 2015-12-23
+		FileVersion: 0.7-rev00001					Date: 2015-12-23
 		By Blackcancer
 
 		website: http://initsysrev.net
@@ -13,7 +13,7 @@
 				- Megacrafter127
 				- der_scheme
 				- tambry
-				- thecko
+				- thecko 
 
 		about format: Header, Logic, Meta and modeles are adapted from 
 		"blueprint.py" by trambry. You can find structure specification
@@ -22,7 +22,7 @@
 
 	header('Content-Type: text/html; charset=UTF-8');
 
-	include 'std.php';
+	include_once 'std.php';
 
 	define("TAG_FINISH",		chr(0));
 	define("TAG_STR_BYTE",		chr(1));
@@ -74,6 +74,16 @@
 			$this->formater	= new SMFormater();
 		}
 
+		/*
+		 * decodeSMFile($file, $formated, $ext, $filesize)
+		 *
+		 * decode starmade file *.ent, *.cat, *.fac, *.smbph, *.smbpl, *.smbpm, *.smd2, *.sment, *.smskin
+		 * @param string	$file		path to the file
+		 * @param bool		$formated	if set to true, use StarOS return format
+		 * @param string	$ext		if given, force decoder to use specifed file extention
+		 * @param int		$filesize	if given, force decoder to use specifed file size
+		 * @return array of decoded file
+		 */
 		public function decodeSMFile($file, $formated = false, $ext = null, $filesize = null){
 			$data			= array();
 			$fileSize		= (!$filesize)	? filesize($file) : $filesize;
@@ -972,6 +982,12 @@
 	//--------------------------------------------
 	class SMFormater {
 		//=============================	 SMD Formater	=============================//
+		/*
+		 * catalog($data)
+		 *
+		 * @param array $data decoded CATALOG.cat
+		 * @return array of StarOS formated CATALOG.cat
+		 */
 		public function catalog($data){
 			$formated	= array();
 			$shipLst	= $data['cv0']['pv0'];
@@ -1020,10 +1036,22 @@
 			return $formated;
 		}
 
+		/*
+		 * entity($data)
+		 *
+		 * @param array $data decoded *.ent
+		 * @return array of StarOS formated *.ent
+		 */
 		public function entity($data){
 			
 		}
 
+		/*
+		 * faction($data)
+		 *
+		 * @param array $data decoded FACTIONS.fac
+		 * @return array of StarOS formated FACTIONS.fac
+		 */
 		public function faction($data){
 			$formated	= array(
 				'factions'		=> array(),
@@ -1200,27 +1228,51 @@
 			return $formated;
 		}
 
+		/*
+		 * header($data)
+		 *
+		 * @param array $data decoded header.smbph
+		 * @return array of StarOS formated header.smbph
+		 */
 		public function header($data){
 			
 		}
 
+		/*
+		 * logic($data)
+		 *
+		 * @param array $data decoded logic.smbpl
+		 * @return array of StarOS formated logic.smbpl
+		 */
 		public function logic($data){
 			
 		}
 
+		/*
+		 * meta($data)
+		 *
+		 * @param array $data decoded meta.smbpm
+		 * @return array of StarOS formated meta.smbpm
+		 */
 		public function meta($data){
 			
 		}
 
+		/*
+		 * smd2($data)
+		 *
+		 * @param array $data decoded *.smd2
+		 * @return array of StarOS formated *.smd2
+		 */
 		public function smd2($data){
 			
 		}
 
+		//==========================   Entity Formater	=============================//
 		private function shop($data){
 			
 		}
 
-		//==========================   Entity Formater	=============================//
 		private function station($data){
 			
 		}
@@ -1254,6 +1306,12 @@
 		}
 
 		//=============================	 Sub Formater	=============================//
+		/*
+		 * permission($int)
+		 *
+		 * @param int $int
+		 * @return array of bool from int
+		 */
 		public function permission($int){
 			$perm	= str_pad(decbin($int), 16, '0', STR_PAD_LEFT);
 			$perm	= str_split($perm, 1);
@@ -1266,6 +1324,14 @@
 			return $arr;
 		}
 
+		/*
+		 * vector3($x, $y, $z)
+		 *
+		 * @param number $x x coordinate
+		 * @param number $y y coordinate
+		 * @param number $z z coordinate
+		 * @return array of coordinate
+		 */
 		public function vector3($x, $y, $z){
 			return array(
 				'x' => $x,
@@ -1274,6 +1340,15 @@
 			);
 		}
 
+		/*
+		 * vector4($data)
+		 *
+		 * @param number $x x coordinate
+		 * @param number $y y coordinate
+		 * @param number $z z coordinate
+		 * @param number $w w coordinate
+		 * @return array of coordinate
+		 */
 		public function vector4($x, $y, $z, $w){
 			return array(
 				'x' => $x,
@@ -1283,6 +1358,15 @@
 			);
 		}
 
+		/*
+		 * colorRGBA($r, $g, $b, $a)
+		 *
+		 * @param number $r color value for red
+		 * @param number $g color value for green
+		 * @param number $b color value for blue
+		 * @param number $a alpha value
+		 * @return array of RGBA color
+		 */
 		public function colorRGBA($r, $g, $b, $a){
 			return array(
 				'r' => $r,

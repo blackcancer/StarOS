@@ -24,7 +24,14 @@
 	// Binary Class
 	//--------------------------------------------
 	class Binary {
-		public function int ($bin, $isUint = false){
+		/*
+		 * int($bin, $isUint)
+		 *
+		 * @param string $bin a binary string to convert to int
+		 * @param bool isUint if set to true, convert to unsigned int
+		 * @return int value of $bin
+		 */
+		public function int($bin, $isUint = false){
 			$number	= null;
 			$length	= strlen($bin);
 			$minLength = 8;
@@ -80,7 +87,13 @@
 			return $number;
 		}
 
-		public function float ($bin){
+		/*
+		 * float($bin)
+		 *
+		 * @param string $bin a binary string to convert to float
+		 * @return float value of $bin
+		 */
+		public function float($bin){
 			$number = null;
 			$length	= strlen($bin);
 			$maxLength = 32;
@@ -121,7 +134,13 @@
 			return $number;
 		}
 
-		public function double ($bin){
+		/*
+		 * double($bin)
+		 *
+		 * @param string $bin a binary string to convert to double
+		 * @return double value of $bin
+		 */
+		public function double($bin){
 			$number = null;
 			$length	= strlen($bin);
 			$maxLength = 64;
@@ -156,6 +175,14 @@
 			return $number;
 		}
 
+		/*
+		 * bits($x, $start, $length)
+		 *
+		 * @param int $x
+		 * @param int $start
+		 * @param int $length
+		 * @return 
+		 */
 		public function bits($x, $start, $length){
 			//Used to mask a portion of a bitfield.
 			$x = $x >> $start;
@@ -164,6 +191,12 @@
 			return $x;
 		}
 
+		/*
+		 * bytesToBin($bytes)
+		 *
+		 * @param string $bytes bytes string to convert to binary string
+		 * @return binary string of $bytes
+		 */
 		public function bytesToBin($bytes){
 			$bin = null;
 			$length = strlen($bytes);
@@ -229,19 +262,48 @@
 	class StreamReader {
 		protected $Stream;
 
+		/*
+		 * __construct($stream)
+		 *
+		 * @param stream $stream if set, set $this->stream = $stream
+		 */
+		public function __construct($stream = null){
+			$this->Stream = $stream;
+		}
+
+		/*
+		 * setStream($file)
+		 *
+		 * @param file or stream $file set $this->stream = stream of $file
+		 */
 		public function setStream($file){
 			try {
-				$this->Stream = fopen($file, "rb");
+				if(get_resource_type($file) == 'stream'){
+					$this->Stream = $file;
+				}
+				else {
+					$this->Stream = fopen($file, "rb");
+				}
 			}
 			catch(Exception $e){
 				throw new Exception('Error loading \''. $e->getFile() .'\' at line '. $e->getLine() .': '. $e->getMessage());
 			}
 		}
 
+		/*
+		 * getPos()
+		 *
+		 * @return current position of $this->stream
+		 */
 		public function getPos(){
 			return ftell($this->Stream);
 		}
 
+		/*
+		 * getPos()
+		 *
+		 * close $this->stream
+		 */
 		public function closeStream(){
 			if(is_resource($this->Stream)){
 				fclose($this->Stream);
@@ -251,6 +313,12 @@
 			}
 		}
 
+		/*
+		 * readBytes($length)
+		 *
+		 * @param int $length read $length bytes of $this->stream
+		 * @return string read bytes
+		 */
 		public function readBytes($length){
 			$bytes = null;
 
@@ -264,6 +332,12 @@
 			return $bytes;
 		}
 
+		/*
+		 * readNextBytes($length)
+		 *
+		 * @param int $length read next $length bytes of $this->stream
+		 * @return string read bytes
+		 */
 		public function readNextBytes($length){
 			$pos	= ftell($this->Stream);
 			$bytes	= $this->readBytes($length);
@@ -272,6 +346,13 @@
 			return $bytes;
 		}
 
+		/*
+		 * readInt($size, $isUint)
+		 *
+		 * @param int $size bits to read
+		 * @param int $isUint if set to true, return unsigned int
+		 * @return int of $size bits
+		 */
 		public function readInt($size = 8, $isUint = false){
 			$Binary = new Binary();
 			$number = null;
@@ -289,6 +370,11 @@
 			return $number;
 		}
 
+		/*
+		 * readFloat()
+		 *
+		 * @return float
+		 */
 		public function readFloat(){
 			$Binary = new Binary();
 			$number = null;
@@ -305,6 +391,11 @@
 			return $number;
 		}
 
+		/*
+		 * readDouble()
+		 *
+		 * @return double
+		 */
 		public function readDouble(){
 			$Binary = new Binary();
 			$number = null;
@@ -322,7 +413,13 @@
 		}
 	}
 
-	function zipFileErrMsg($errno) {
+	/*
+	 * zipFileErrMsg($errno)
+	 *
+	 * @param string zip error message
+	 * @return string formated zip error message
+	 */
+	function zipFileErrMsg($errno){
 		// using constant name as a string to make this function PHP4 compatible
 		$zipFileFunctionsErrors = array(
 			'ZIPARCHIVE::ER_MULTIDISK'		=> 'Multi-disk zip archives not supported.',
