@@ -25,6 +25,7 @@ const	_HTTP		= require('http'),
 		_XML		= require('xmldom').DOMParser,
 		_LOGGER		= require('./logger'),
 		_ERR		= require('./errno'),
+		_MYSQL		= require('mysql'),
 
 		_confPath	= _PATH.join(_PATH.dirname(__filename), 'settings.json');
 

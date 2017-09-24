@@ -23,6 +23,17 @@ credit:
 
 
 ### ==> CHANGELOG <==
+0.1-rev00006:  
+-	Update exemple.php for better reading of user data  
+-	Update *.smbph format to starmade v0.199  
+-	Update *.smbpm format to starmade v0.199 (work for many bp but nor fully finished)  
+-	Decoding of serial data for entity  
+-	Add comments with bin, hex and char version for TAGs  
+-	Add special case for meta file in TAG_STR_SHORT  
+-	Remove unused variables  
+-	Fix hex encoding in std.php  
+-	Fix potential error in setStream function in std.php   
+
 0.1:  
 -	Move SMDecoder to SMTools  
 -	Documentation of public functions  

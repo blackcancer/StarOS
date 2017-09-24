@@ -24,39 +24,40 @@
 
 	include_once 'std.php';
 
-	define("TAG_FINISH",		chr(0));
-	define("TAG_STR_BYTE",		chr(1));
-	define("TAG_STR_SHORT",		chr(2));
-	define("TAG_STR_INT",		chr(3));
-	define("TAG_STR_LONG",		chr(4));
-	define("TAG_STR_FLOAT",		chr(5));
-	define("TAG_STR_DOUBLE",	chr(6));
-	define("TAG_STR_BYTEARRAY",	chr(7));
-	define("TAG_STR_STRING",	chr(8));
-	define("TAG_STR_FLOAT3",	chr(9));
-	define("TAG_STR_INT3",		chr(10));
-	define("TAG_STR_BYTE3",		chr(11));
-	define("TAG_STR_LIST",		chr(12));
-	define("TAG_STR_STRUCT",	chr(13));
-	define("TAG_STR_SERIAL",	chr(14));
-	define("TAG_STR_RGBA",		chr(15));
+							//	 DEC				BIN		HEX		CHAR
+	define("TAG_FINISH",		chr(0));	//--> 00000000	 00		 NUL
+	define("TAG_STR_BYTE",		chr(1));	//--> 00000001	 01		 SOH
+	define("TAG_STR_SHORT",		chr(2));	//--> 00000010	 02		 STX
+	define("TAG_STR_INT",		chr(3));	//--> 00000011	 03		 ETX
+	define("TAG_STR_LONG",		chr(4));	//--> 00000100	 04		 EOT
+	define("TAG_STR_FLOAT",		chr(5));	//--> 00000101	 05		 ENQ
+	define("TAG_STR_DOUBLE",	chr(6));	//--> 00000110	 06		 ACK
+	define("TAG_STR_BYTEARRAY",	chr(7));	//--> 00000111	 07		 BEL
+	define("TAG_STR_STRING",	chr(8));	//--> 00001000	 08		  BS
+	define("TAG_STR_FLOAT3",	chr(9));	//--> 00001001	 09		  HT
+	define("TAG_STR_INT3",		chr(10));	//--> 00001010	 0A		  LF
+	define("TAG_STR_BYTE3",		chr(11));	//--> 00001011	 0B		  VT
+	define("TAG_STR_LIST",		chr(12));	//--> 00001100	 0C		  FF
+	define("TAG_STR_STRUCT",	chr(13));	//--> 00001101	 0D		  CR
+	define("TAG_STR_SERIAL",	chr(14));	//--> 00001110	 0E		  SO
+	define("TAG_STR_RGBA",		chr(15));	//--> 00001111	 0F		  SI
 
-	define("TAG_FLOAT16",		chr(240));
-	define("TAG_RGBA",			chr(241));
-	define("TAG_SERIAL",		chr(242));
-	define("TAG_STRUCT",		chr(243));
-	define("TAG_LIST",			chr(244));
-	define("TAG_BYTE3",			chr(245));
-	define("TAG_INT3",			chr(246));
-	define("TAG_FLOAT3",		chr(247));
-	define("TAG_STRING",		chr(248));
-	define("TAG_BYTEARRAY",		chr(249));
-	define("TAG_DOUBLE",		chr(250));
-	define("TAG_FLOAT",			chr(251));
-	define("TAG_LONG",			chr(252));
-	define("TAG_INT",			chr(253));
-	define("TAG_SHORT",			chr(254));
-	define("TAG_BYTE",			chr(255));
+	define("TAG_FLOAT16",		chr(240));	//--> 11110000	 F0		   ð
+	define("TAG_RGBA",			chr(241));	//--> 11110001	 F1		   ñ
+	define("TAG_SERIAL",		chr(242));	//--> 11110010	 F2		   ò
+	define("TAG_STRUCT",		chr(243));	//--> 11110011	 F3		   ó
+	define("TAG_LIST",			chr(244));	//--> 11110100	 F4		   ô
+	define("TAG_BYTE3",			chr(245));	//--> 11110101	 F5		   õ
+	define("TAG_INT3",			chr(246));	//--> 11110110	 F6		   ö
+	define("TAG_FLOAT3",		chr(247));	//--> 11110111	 F7		   ÷
+	define("TAG_STRING",		chr(248));	//--> 11111000	 F8		   ø
+	define("TAG_BYTEARRAY",		chr(249));	//--> 11111001	 F9		   ù
+	define("TAG_DOUBLE",		chr(250));	//--> 11111010	 FA		   ú
+	define("TAG_FLOAT",			chr(251));	//--> 11111011	 FB		   û
+	define("TAG_LONG",			chr(252));	//--> 11111100	 FC		   ü
+	define("TAG_INT",			chr(253));	//--> 11111101	 FD		   ý
+	define("TAG_SHORT",			chr(254));	//--> 11111110	 FE		   þ
+	define("TAG_BYTE",			chr(255));	//--> 11111111	 FF		   ÿ
 
 
 	//--------------------------------------------
@@ -125,7 +126,7 @@
 					break;
 
 				case 'smbpl':
-					$data = $this->decodeSMBPL($fileSize);
+					$data = $this->decodeSMBPL();
 
 					if($formated){
 						$data = $this->formater->logic();
@@ -213,7 +214,14 @@
 
 					case TAG_STR_SHORT:
 						$data['name'] = $this->readString();
-						$data['data'] = $this->stream->readInt(16);
+
+						//check special case of meta file
+						if($data['name'] != ""){
+							$data['data'] = $this->stream->readInt(16);
+						}
+						else {
+							$data['data'] = 0; 
+						}
 						break;
 
 					case TAG_SHORT:
@@ -417,24 +425,38 @@
 						$data['name']	= $this->readString();
 						$data['data']	= null;
 						$nextBytes		= null;
-
-						while($nextBytes != chr(8) . chr(0) . chr(8) . 'realname'){
-							$data['data']	.= $this->toHex($this->stream->readBytes(1)) . " ";
-							$nextBytes		 = $this->stream->readNextBytes(11);
+						
+						if($data['name'] == "cs1"){
+							$data['data'] = $this->decodeSMBPL(true);
 						}
+						else {
+							while($nextBytes != chr(8) . chr(0) . chr(8) . 'realname'){
+								$data['data']	.= $this->toHex($this->stream->readBytes(1)) . " ";
+								$nextBytes		 = $this->stream->readNextBytes(11);
+							}
 
-						$data['data'] = substr($data['data'], 0, -1);
+							$data['data'] = substr($data['data'], 0, -1);
+						}
 						break;
 
 					case TAG_SERIAL:
-						$nextBytes = null;
+						$data['byte_a']			= $this->stream->readInt();
+						$data['blockTableLen']	= $this->stream->readInt(32);
+						$data['blocks']			= array();
+
+						for($i = 0; $i < $data['blockTableLen']; $i++){
+							$data['blocks'][$this->stream->readInt(16)] = $this->stream->readInt(32, true);
+						}
+
+						//HEX ENCODING
+						/*$nextBytes = null;
 
 						while(!preg_match('/\xFF.\x00\x00\xF3/', $nextBytes)){
 							$data		.= $this->toHex($this->stream->readBytes(1)) . " ";
 							$nextBytes	 = $this->stream->readNextBytes(5);
 						}
 
-						$data = substr($data, 0, -1);
+						$data = substr($data, 0, -1);*/
 						break;
 
 					case TAG_RGBA:
@@ -546,20 +568,28 @@
 
 			$data['int_a']			= $this->stream->readInt(32);
 			$data['type']			= $this->stream->readInt(32);
+			$data['class']			= $this->stream->readInt(32);
 			$data['bounds_n']		= $this->formater->vector3($this->stream->readFloat(), $this->stream->readFloat(), $this->stream->readFloat());
 			$data['bounds_p']		= $this->formater->vector3($this->stream->readFloat(), $this->stream->readFloat(), $this->stream->readFloat());
 			$data['blockTableLen']	= $this->stream->readInt(32, true);
+			$data['blocks']			= array();
 
-			$data['blocks'] = array();
 			for($i = 0; $i < $data['blockTableLen']; $i++){
 				$data['blocks'][$this->stream->readInt(16)] = $this->stream->readInt(32, true);
+			}
+
+			$data['byte_a']			= $this->stream->readInt(8, true);
+			$data['short_a']		= $this->stream->readInt(16, true);
+			$data['unkDoubles']		= array();
+			for($i = 0; $i < 9; $i++){
+				array_push($data['unkDoubles'], $this->stream->readDouble()); 
 			}
 
 			return $data;
 		}
 
 		//=============================	 Logic Decoder	=============================//
-		private function decodeSMBPL($fileSize){
+		private function decodeSMBPL($isCs1 = false){
 			/*
 				start	type
 					0	int					unknown int
@@ -601,28 +631,32 @@
 
 			$data = array();
 
-			while ($this->stream->getPos() < $fileSize){
+			if($isCs1){
+				$data['int_a']			= $this->stream->readInt();
+			}
+			else{
 				$data['int_a']			= $this->stream->readInt(32);
-				$ctrLen					= $this->stream->readInt(32, true);
-				$data['controllers']	= array();
+			}
+			$data['int_b']			= $this->stream->readInt(32);
+			$ctrLen					= $this->stream->readInt(32, true);
+			$data['controllers']	= array();
 
-				for($i = 0; $i < $ctrLen; $i++){
-					$dict				= array();
-					$dict['position']	= $this->formater->vector3($this->stream->readInt(16), $this->stream->readInt(16), $this->stream->readInt(16));
-					$numGrp				= $this->stream->readInt(32, true);
+			for($i = 0; $i < $ctrLen; $i++){
+				$dict				= array();
+				$dict['position']	= $this->formater->vector3($this->stream->readInt(16), $this->stream->readInt(16), $this->stream->readInt(16));
+				$numGrp				= $this->stream->readInt(32, true);
 
-					$dict['group'] = array();
-					for($j = 0; $j < $numGrp; $j++){
-						$tag		= $this->stream->readInt(16);
-						$numBlocks	= $this->stream->readInt(32, true);
+				$dict['group'] = array();
+				for($j = 0; $j < $numGrp; $j++){
+					$tag		= $this->stream->readInt(16);
+					$numBlocks	= $this->stream->readInt(32, true);
 
-						$dict['group'][$tag] = array();
-						for($x = 0; $x < $numBlocks; $x++){
-							array_push($dict['group'][$tag], $this->formater->vector3($this->stream->readInt(16), $this->stream->readInt(16), $this->stream->readInt(16)));
-						}
+					$dict['group'][$tag] = array();
+					for($x = 0; $x < $numBlocks; $x++){
+						array_push($dict['group'][$tag], $this->formater->vector3($this->stream->readInt(16), $this->stream->readInt(16), $this->stream->readInt(16)));
 					}
-					array_push($data['controllers'], $dict);
 				}
+				array_push($data['controllers'], $dict);
 			}
 			return $data;
 		}
@@ -630,6 +664,9 @@
 		//=============================	 Meta Decoder	=============================//
 		private function decodeSMBPM(){
 			/*
+				-----------------------
+				|Out dated description|
+				-----------------------
 				start		type
 					0		int				unknown int
 					4		byte			unknown byte. Currently expecting a 0x03 here.
@@ -662,45 +699,89 @@
 
 			$data	= array();
 
-			$data['int_a']	= $this->stream->readInt(32);
-			$data['byte_a']	= $this->stream->readInt(8);
-			$data['int_b']	= $this->stream->readInt(32);
+			$data['int_a']		= $this->stream->readInt(32);
+			$data['byte_a']		= $this->stream->readInt(8);
+			$data['int_b']		= $this->stream->readInt(32);
 
+			$data['byte_b']		= $this->stream->readInt(8);
+			$data['byte_c']		= $this->stream->readInt(8);
+			$data['struct_a']	= array();
+			$data['struct_b']	= array();
+			$data['struct_c']	= array();
+			$data['struct_d']	= array();
+			
 			if($data['byte_a'] == 3){
 
-				$numDouble = $this->stream->readInt(8);
-				$data['doubleLst']	= array();
-				for($i = 0; $i < $numDouble; $i++){
-					array_push($data['doubleLSt'], $this->stream->readDouble());
+				$nStruct	= $this->stream->readInt(32);
+				for($i = 0; $i < $nStruct; $i++){			
+					$struct = array();
+					array_push($struct, $this->stream->readInt(32));
+					array_push($struct, $this->stream->readInt(32));
+					array_push($struct, $this->stream->readInt(32));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(8));
+					array_push($struct, $this->stream->readInt(16));
+					
+					array_push($data['struct_a'], $struct);
 				}
 
-				$numDocked		= $this->stream->readInt(16, true);
-				$data['docked']	= array();
+				$data['byte_d']		= $this->stream->readInt(8);
+				$data['byte_e']		= $this->stream->readInt(8);
+				$nStruct	= $this->stream->readInt(32);
+				for($i = 0; $i < $nStruct; $i++){
+					$struct = array();
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readDouble());
 
-				for($i = 0; $i < $numDocked; $i++){
-					$name	= $this->stream->readString();
-					$tag	= $this->stream->readBytes(1);
-
-					$data['docked'][$name] = array();
-
-					while($tag != null){
-						$value = $this->parseTag($tag);
-
-						if(isset($value['name'])){
-							$data['docked'][$name][$value['name']] = $value['data'];
-						}
-						else{
-							array_push($data['docked'][$name], $value);
-						}
-
-						$tag = $this->stream->readBytes(1);
-					}
-					fseek($this->Stream, $pos - 1);
+					array_push($data['struct_b'], $struct);
 				}
 
-				$pos = $this->stream->getPos();
+				$data['byte_f']		= $this->stream->readInt(8);
+				$data['float_a']	= $this->stream->readFloat();
+				$data['float_b']	= $this->stream->readFloat();
+				$data['float_c']	= $this->stream->readFloat();
+				$data['float_d']	= $this->stream->readFloat();
+				$data['float_e']	= $this->stream->readFloat();
+				$data['float_f']	= $this->stream->readFloat();
 
-				$data['gzip']	= $this->stream->readInt(16);
+				$data['byte_g']		= $this->stream->readInt(8);
+				$data['byte_h']		= $this->stream->readInt(8);
+				$nStruct	= $this->stream->readInt(32);
+				for($i = 0; $i < $nStruct; $i++){
+					$struct = array();
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(32));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(32));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(16));
+					
+					array_push($data['struct_c'], $struct);
+				}
+
+				$nStruct	= $this->stream->readInt(32);
+				for($i = 0; $i < $nStruct; $i++){
+					$struct = array();
+					array_push($struct, $this->readString());
+					array_push($struct, $this->stream->readInt(8));
+					array_push($struct, $this->stream->readInt(16));
+					array_push($struct, $this->stream->readInt(8));
+					array_push($struct, $this->stream->readInt(16));
+
+					$tag = $this->stream->readBytes(1);
+					array_push($struct, $this->parseTag($tag));
+					array_push($data['struct_d'], $struct);
+				}
+				
+				$data['byte_i']		= $this->stream->readInt(8);
+				$data['short_a']	= $this->stream->readInt(16);
+				$data['short_b']	= $this->stream->readInt(16);
+				$data['gzip']		= $this->stream->readInt(16);
+				// return $data;
 				$tag			= $this->stream->readBytes(1);
 
 				while($tag != null){

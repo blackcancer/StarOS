@@ -4,7 +4,7 @@
 		Description: Read data from UTF-8 stream and convert binary data to numbers
 		License: http://creativecommons.org/licenses/by/3.0/legalcode
 
-		FileVersion: 0.1-rev00001					Date: 2015-12-23
+		FileVersion: 0.1-rev00003					Date: 2015-12-23
 		By Blackcancer
 
 		website: http://initsysrev.net
@@ -108,6 +108,13 @@
 				}
 				else {
 					$hex = base_convert($bin, 2, 16);
+					$toAdd	= 8 - strlen($hex);
+					
+					for($i = 0; $i < $toAdd; $i++){
+						$hex = '0' . $hex;
+					}
+
+					
 					$hex = chunk_split($hex, 2, " ");
 					$hex = substr($hex, 0, -1);
 					$hex = $this->hexReverse($hex);
@@ -154,11 +161,17 @@
 					$number = NULLDOUBLE;
 				}
 				else {
-					$hex = base_convert($bin, 2, 16);
-					$hex = chunk_split($hex, 2, " ");
-					$hex = substr($hex, 0, -1);
-					$hex = $this->hexReverse($hex);
-					$hex = $this->hexify($hex);
+					$hex	= base_convert($bin, 2, 16);
+					$toAdd	= 16 - strlen($hex);
+					
+					for($i = 0; $i < $toAdd; $i++){
+						$hex = '0' . $hex;
+					}
+
+					$hex	= chunk_split($hex, 2, " ");
+					$hex	= substr($hex, 0, -1);
+					$hex	= $this->hexReverse($hex);
+					$hex	= $this->hexify($hex);
 
 					if($hex === false){
 						throw new Exception("Invalide hex for double in function ". __CLASS__ ."::". __FUNCTION__ ."()");
@@ -278,11 +291,11 @@
 		 */
 		public function setStream($file){
 			try {
-				if(get_resource_type($file) == 'stream'){
-					$this->Stream = $file;
-				}
-				else {
+				if(is_string($file)){
 					$this->Stream = fopen($file, "rb");
+				}
+				else if(get_resource_type($file) == 'stream'){
+					$this->Stream = $file;
 				}
 			}
 			catch(Exception $e){
@@ -356,7 +369,6 @@
 		public function readInt($size = 8, $isUint = false){
 			$Binary = new Binary();
 			$number = null;
-			//echo 'int size '.$size/8 .'</br>';
 
 			try {
 				$bytes	= $this->readBytes($size/8);

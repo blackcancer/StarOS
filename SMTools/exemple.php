@@ -109,7 +109,30 @@
 					$user = $SML->requestSelf();
 
 					//print data
-					var_dump($user);
+					echo "<div>";
+					echo "[USER DATA] </br>";
+					echo "id:&emsp;&emsp;&emsp;&nbsp;&nbsp;" .	$user['user']['id'] . " </br>";
+					echo "email:&emsp;&emsp;" .					$user['user']['email'] . " </br>";
+					echo "user name:&nbsp;" .					$user['user']['username'] . " </br>";
+					echo "skin url:&emsp;&nbsp;" .				$user['user']['skin_url'] . " </br>";
+					echo "upgraded:&nbsp;&nbsp;" .				$user['user']['upgraded'] . " </br>";
+					echo "steam link:</br>";
+					echo "&emsp; user id:&emsp;&nbsp;&nbsp;" .	$user['user']['steam_link']['user_id'] . " </br>";
+					echo "&emsp; steam id:&nbsp;&nbsp;&nbsp;" .	$user['user']['steam_link']['steam_id'] . " </br>";
+					echo "&emsp; created at:&nbsp;" .			$user['user']['steam_link']['created_at'] . " </br>";
+					echo "created at:&nbsp;&nbsp;&nbsp;" .		$user['user']['created_at'] . " </br>";
+
+					echo "</br>";
+					echo "access token:&emsp;" .				$SML->getAccessToken() . "</br>";
+					echo "Token type:&emsp;&nbsp;&nbsp;" .		$SML->getTokenType() . "</br>";
+					echo "Token Expire:&nbsp;&nbsp;&nbsp;" .	$SML->getExpires() . "</br>";
+					echo "Token Refresh:&nbsp;" .				$SML->getRefreshToken() . "</br>";
+					echo "Token scope:&emsp;" .					$SML->getscope() . "</br>";
+					echo "Token auth:&emsp;" .					implode("; ", $SML->requestAuthToken()) . "</br>";
+					var_dump($SML->requestAuthToken());
+					echo "</div>";
+
+					file_put_contents('json/blueprints.json', json_encode($bp, JSON_FORCE_OBJECT));
 				}
 			}
 		?>
